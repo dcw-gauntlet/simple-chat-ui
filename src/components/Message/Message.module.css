@@ -1,0 +1,98 @@
+.messageContainer {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  padding: 8px 16px;
+  min-height: 60px;
+}
+
+.ownMessage {
+  grid-template-columns: 1fr 40px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  grid-row: span 2; /* Span both message and reactions row */
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.messageContent {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 4px;
+  min-width: 0; /* Prevent content from expanding grid */
+  max-width: 70%;
+  justify-self: start;
+}
+
+.ownMessage .messageContent {
+  justify-self: end;
+}
+
+.messageHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.username {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.timestamp {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.messageText {
+  color: #1a1a1a;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background-color: #f0f0f0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border-top-left-radius: 4px;
+  min-height: 36px;
+}
+
+.ownMessageText {
+  background-color: #0066cc;
+  color: white;
+  border-radius: 12px;
+  border-top-right-radius: 4px;
+}
+
+.reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 24px; /* Maintain height even when empty */
+  align-items: center;
+}
+
+.reaction {
+  background-color: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+}
+
+.ownMessage .reaction {
+  background-color: #0052a3;
+  color: white;
+}
