@@ -5,21 +5,19 @@ import { Channel, Message } from './../../types';
 import { ApiClient } from './../../client';
 
 interface ChatPanelProps {
-  channel: Channel | null;
-  stackDepth: number;
-  onPopStack: () => void;
-  onThreadCreate: (channel: Channel, messageId: string) => void;
+  channel: Channel;
   client: ApiClient;
   userId: string;
+  onThreadCreate: (message: Message) => void;
+  onThreadOpen: (threadChannel: Channel, message: Message) => void;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ 
   channel, 
-  stackDepth,
-  onPopStack,
-  onThreadCreate,
   client,
-  userId
+  userId,
+  onThreadCreate,
+  onThreadOpen
 }) => {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [newMessage, setNewMessage] = React.useState('');
@@ -128,23 +126,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             <span>Created: {new Date(channel.created_at).toLocaleDateString()}</span>
           </div>
         </div>
-        {stackDepth > 1 && (
-          <button 
-            onClick={onPopStack}
-            className={styles.popButton}
-          >
-            ↓ Back
-          </button>
-        )}
       </div>
       <div className={styles.messageList}>
         {messages.map((message) => (
           <MessageComponent
             key={message.id}
             message={message}
-            onThreadCreate={() => onThreadCreate(channel!, message.id)}
             currentUserId={userId}
             client={client}
+            onThreadCreate={() => onThreadCreate(message)}
+            onThreadOpen={() => message.thread ? onThreadOpen(message.thread, message) : undefined}
             onReactionUpdate={handleReactionUpdate}
           />
         ))}

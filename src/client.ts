@@ -46,6 +46,17 @@ interface GetChannelMessagesResponse extends BaseResponse {
   messages: Message[];
 }
 
+// Add new response type
+interface SearchChannelsResponse extends BaseResponse {
+  channels: Channel[];
+}
+
+// Add new request/response types
+interface AddThreadRequest {
+  message_id: string;
+  channel_id: string;
+}
+
 // ----- Request body types -----
 
 interface RegisterRequest {
@@ -71,8 +82,11 @@ interface RegisterResponse {
 
 interface CreateChannelRequest {
   name: string;
-  channel_type: ChannelType; // 'conversation' | 'thread' | 'dm'
+  channel_type: ChannelType;
   creator_id: string;
+  description: string;
+  parent_channel_id?: string;
+  parent_message_id?: string;
 }
 
 interface JoinChannelRequest {
@@ -153,15 +167,11 @@ export class ApiClient {
 
   // ----- Channel endpoints -----
 
-  async createChannel(data: CreateChannelRequest): Promise<ChannelResponse> {
+  async createChannel(params: CreateChannelRequest): Promise<ChannelResponse> {
     return this.request<ChannelResponse>('/create_channel', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // If your server requires auth, pass the token here:
-        // 'Authorization': `Bearer ${this.token}`
-      },
-      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
     });
   }
 
@@ -247,6 +257,39 @@ export class ApiClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+  }
+
+  async searchChannels(prefix: string): Promise<SearchChannelsResponse> {
+    try {
+      return this.request<SearchChannelsResponse>('/search_channels', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        params: { prefix }
+      });
+    } catch (error) {
+      console.error('Search channels error:', error);
+      return {
+        ok: false,
+        message: 'Failed to search channels',
+        channels: []
+      };
+    }
+  }
+
+  async addThread(data: AddThreadRequest): Promise<BaseResponse> {
+    try {
+      return this.request<BaseResponse>('/add_thread', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } catch (error) {
+      console.error('Add thread error:', error);
+      return {
+        ok: false,
+        message: 'Failed to add thread'
+      };
+    }
   }
 }
 

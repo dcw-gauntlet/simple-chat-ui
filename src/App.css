@@ -22,10 +22,16 @@ body {
 }
 
 .main-content {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
   flex: 1;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+}
+
+.chat-panel-container {
+  flex: 1;
+  min-width: 0; /* Prevents flex items from overflowing */
   height: 100%;
 }
 

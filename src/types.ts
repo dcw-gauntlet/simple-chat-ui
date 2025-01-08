@@ -12,18 +12,50 @@ export interface Message {
   id: string;
   sent: string;
   text: string;
-  sender: User;
   content: string;
   channel_id: string;
-  reactions: Record<string, number>;
+  sender: {
+    id: string;
+    username: string;
+    profile_picture: string;
+    status: UserStatus;
+  };
+  reactions: { [emoji: string]: number };
+  has_thread: boolean;
+  has_image: boolean;
+  thread?: Channel;
+  image?: string;
 }
 
 export interface PopulatedMessage extends Omit<Message, 'sender'> {
   sender: User;
 }
 
+export enum ChannelType {
+  CONVERSATION = 'conversation',
+  DM = 'dm',
+  THREAD = 'thread',
+}
+
 export interface Channel {
   id: string;
   name: string;
   created_at: string;
+  channel_type: ChannelType;
+  description: string;
+  members_count: number;
+}
+
+export interface ChannelMembership {
+  user_id: string;
+  channel_id: string;
+  created_at: string;
+}
+
+export enum UserStatus {
+  ONLINE = 'online',
+  OFFLINE = 'offline',
+  AWAY = 'away',
+  DO_NOT_DISTURB = 'do_not_disturb',
+  INVISIBLE = 'invisible',
 }

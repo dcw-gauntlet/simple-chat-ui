@@ -1,56 +1,34 @@
 .container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  width: 100%;
 }
 
 .title {
-  font-size: 1rem;
-  font-weight: 500;
-  color: #666;
-  margin: 0;
-  padding: 0.5rem 0;
-}
-
-.channelList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.channelItem {
-  padding: 0.75rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.channelItem:hover {
-  background-color: #f0f0f0;
-}
-
-.channelName {
-  font-weight: 500;
-  color: #333;
-}
-
-.channelMeta {
-  font-size: 0.75rem;
-  color: #666;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .empty {
   color: #666;
-  font-size: 0.9rem;
-  padding: 1rem;
   text-align: center;
-  background-color: #f5f5f5;
-  border-radius: 4px;
+  padding: 1rem;
+}
+
+.channelList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.channelItem {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.channelItem:hover {
+  opacity: 0.9;
 }
   

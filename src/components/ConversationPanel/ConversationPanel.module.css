@@ -1,69 +1,212 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-}
-
-.joinForm {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.joinForm input {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  gap: 20px;
+  padding: 20px;
+  height: 100%;
 }
 
 .buttonGroup {
   display: flex;
-  gap: 0.5rem;
+  gap: 12px;
 }
 
 .joinButton, .createButton {
   flex: 1;
-  padding: 0.75rem;
+  padding: 12px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .joinButton {
-  background-color: #0066cc;
+  background-color: #007AFF;
   color: white;
+}
+
+.joinButton:hover {
+  background-color: #0056b3;
 }
 
 .createButton {
-  background-color: #10b981;
+  background-color: #34C759;
   color: white;
 }
 
-.switchButton {
-  flex: 1;
-  padding: 0.75rem;
-  background-color: #f3f4f6;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  color: #666;
+.createButton:hover {
+  background-color: #248a3d;
 }
 
-.joinButton:disabled,
-.createButton:disabled,
-.switchButton:disabled {
-  opacity: 0.7;
+.joinButton:disabled, .createButton:disabled {
+  background-color: #E5E5EA;
+  color: #8E8E93;
   cursor: not-allowed;
 }
 
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.modalContent {
+  background-color: white;
+  padding: 24px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.searchBar {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #E5E5EA;
+}
+
+.searchBar input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #E5E5EA;
+  border-radius: 10px;
+  font-size: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.searchBar input:focus {
+  outline: none;
+  border-color: #007AFF;
+}
+
+.searchResults {
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 1rem 0;
+}
+
+.searchResult {
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.searchResult:last-child {
+  margin-bottom: 0;
+}
+
+.channelName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1C1C1E;
+  margin-bottom: 6px;
+}
+
+.channelDescription {
+  font-size: 14px;
+  color: #48484A;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.memberCount {
+  font-size: 12px;
+  color: #8E8E93;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.memberCount::before {
+  content: "👥";
+  font-size: 14px;
+}
+
+.createForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.createForm input, .createForm textarea {
+  padding: 12px 16px;
+  border: 2px solid #E5E5EA;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.createForm input:focus, .createForm textarea:focus {
+  outline: none;
+  border-color: #007AFF;
+}
+
+.descriptionInput {
+  min-height: 100px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.modalButtons {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.modalButtons button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.closeButton {
+  background-color: #E5E5EA;
+  color: #48484A;
+}
+
+.closeButton:hover {
+  background-color: #D1D1D6;
+}
+
+.loadingIndicator {
+  padding: 20px;
+  text-align: center;
+  color: #8E8E93;
+  font-size: 14px;
+}
+
 .error {
-  color: #dc2626;
-  font-size: 0.875rem;
-  padding: 0.5rem;
-  background-color: #fee2e2;
+  background-color: #fff2f2;
+  border: 1px solid #ffcdd2;
+  color: #d32f2f;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
   border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1C1C1E;
+  margin: 0;
 } 

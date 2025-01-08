@@ -1,11 +1,11 @@
+// app.tsx
 import './App.css';
 import { client } from './client';
 import React, { useState, useEffect } from 'react';
 import { LoginForm } from './components/LoginForm/LoginForm';
-import { User } from './types';
+import { User, Channel, Message, ChannelType } from './types';
 import { ConversationPanel } from './components/ConversationPanel/ConversationPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
-import { Channel, Message } from './types';
 
 interface LoggedInProps {
   user: User;
@@ -13,24 +13,25 @@ interface LoggedInProps {
 }
 
 const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
-  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [conversationStack, setConversationStack] = useState<Channel[]>([]);
   const [conversations, setConversations] = useState<Channel[]>([]);
-  const [stackDepth, setStackDepth] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   const handleChannelSelect = (channel: Channel) => {
-    setSelectedChannel(channel);
-    setStackDepth(1);
+    setConversationStack(prevStack => {
+      if (prevStack[prevStack.length - 1]?.id === channel.id) {
+        return prevStack;
+      }
+      return [...prevStack, channel];
+    });
   };
 
-  const handleThreadCreate = (channel: Channel, messageId: string) => {
-    // TODO: Create thread implementation
-    setStackDepth(stackDepth + 1);
-  };
-
-  const handlePopStack = () => {
-    setStackDepth(Math.max(1, stackDepth - 1));
+  const handleShiftConversations = () => {
+    setConversationStack(prevStack => {
+      if (prevStack.length <= 1) return prevStack;
+      return prevStack.slice(0, -1);
+    });
   };
 
   const pollMessages = async (channelId: string): Promise<Message[]> => {
@@ -58,6 +59,58 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
   useEffect(() => {
     refreshConversations();
   }, [user.id]);
+
+  // New helper function to handle opening a thread in the conversation stack
+  const openThreadInStack = (threadChannel: Channel, fromPrimaryPanel: boolean = false) => {
+    setConversationStack(prevStack => {
+      // If opening from primary panel, drop the secondary panel first
+      if (fromPrimaryPanel && prevStack.length > 1) {
+        return [prevStack[0], threadChannel];
+      }
+      
+      // Otherwise proceed with normal stack behavior
+      if (prevStack[prevStack.length - 1]?.id === threadChannel.id) {
+        return prevStack;
+      }
+      return [...prevStack, threadChannel];
+    });
+  };
+
+  const handleThreadCreate = async (parentChannel: Channel, message: Message) => {
+    try {
+      const messagePreview = (message.content || message.text || '')
+        .trim()
+        .substring(0, 30)
+        + ((message.content || message.text || '').length > 30 ? '...' : '');
+
+      const threadResponse = await client.createChannel({
+        name: `${parentChannel.name} >> ${messagePreview} - Thread`,
+        channel_type: ChannelType.THREAD,
+        creator_id: user.id,
+        description: `Thread from message: ${message.id}`,
+        parent_channel_id: parentChannel.id,
+        parent_message_id: message.id
+      });
+
+      if (threadResponse.ok && threadResponse.channel) {
+        // Check if this message is from the primary panel by comparing channel IDs
+        const fromPrimaryPanel = conversationStack.length > 0 && 
+          message.channel_id === conversationStack[0].id;
+        
+        openThreadInStack(threadResponse.channel, fromPrimaryPanel);
+      }
+    } catch (error) {
+      console.error('Failed to create thread:', error);
+    }
+  };
+
+  const handleThreadOpen = (threadChannel: Channel, message: Message) => {
+    // Check if this message is from the primary panel by comparing channel IDs
+    const fromPrimaryPanel = conversationStack.length > 0 && 
+      message.channel_id === conversationStack[0].id;
+    
+    openThreadInStack(threadChannel, fromPrimaryPanel);
+  };
 
   return (
     <div className="app-container">
@@ -93,14 +146,48 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
         )}
       </div>
       <div className="main-content">
-        <ChatPanel
-          channel={selectedChannel}
-          stackDepth={stackDepth}
-          onPopStack={handlePopStack}
-          onThreadCreate={handleThreadCreate}
-          client={client}
-          userId={user.id}
-        />
+        {conversationStack.length > 0 && (
+          <>
+            <div className="chat-panel-container">
+              <ChatPanel
+                channel={conversationStack.length > 1 ? 
+                  conversationStack[conversationStack.length - 2] : 
+                  conversationStack[0]}
+                client={client}
+                onThreadOpen={(threadChannel: Channel, message: Message) => handleThreadOpen(threadChannel, message)}
+                userId={user.id}
+                onThreadCreate={(message: Message) => handleThreadCreate(
+                  conversationStack[conversationStack.length - 1],
+                  message
+                )}
+              />
+            </div>
+            
+            {conversationStack.length > 1 && (
+              <div className="chat-panel-container">
+                <ChatPanel
+                  channel={conversationStack[conversationStack.length - 1]}
+                  client={client}
+                  userId={user.id}
+                  onThreadCreate={(message) => handleThreadCreate(
+                    conversationStack[conversationStack.length - 1],
+                    message
+                  )}
+                  onThreadOpen={(threadChannel, message) => handleThreadOpen(threadChannel, message)}
+                />
+              </div>
+            )}
+
+            {conversationStack.length > 1 && (
+              <button 
+                className="shift-button"
+                onClick={handleShiftConversations}
+              >
+                Shift Conversations
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -161,4 +248,3 @@ export default function App() {
     </div>
   );
 }
-

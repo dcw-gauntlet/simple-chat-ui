@@ -1,0 +1,44 @@
+.channelContainer {
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: white;
+  transition: box-shadow 0.2s ease;
+}
+
+.channelContainer:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.channelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.channelName {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.memberCount {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.description {
+  margin: 0.5rem 0;
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.metadata {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #666;
+}

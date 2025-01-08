@@ -1,5 +1,6 @@
 import React from 'react';
-import { Channel, ChannelType } from '../../types';
+import { Channel } from '../../types';
+import { ChannelDisplay } from '../ChannelDisplay/ChannelDisplay';
 import styles from './RecentChannels.module.css';
 
 interface RecentChannelsProps {
@@ -26,10 +27,7 @@ export const RecentChannels: React.FC<RecentChannelsProps> = ({
               className={styles.channelItem}
               onClick={() => onChannelSelect(channel)}
             >
-              <div className={styles.channelName}>{channel.name}</div>
-              <div className={styles.channelMeta}>
-                {new Date(channel.created_at).toLocaleDateString()}
-              </div>
+              <ChannelDisplay channel={channel} />
             </li>
           ))}
         </ul>
