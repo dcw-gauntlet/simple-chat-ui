@@ -105,6 +105,29 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
     };
   }, [searchQuery, showSearchModal]);
 
+  // Poll for both conversations and DMs every 3 seconds
+  useEffect(() => {
+    const pollConversations = async () => {
+      try {
+        // Get both regular conversations and DMs
+        const [conversationsResponse, dmsResponse] = await Promise.all([
+          client.getConversations(user.id),
+          client.getDMChannels(user.id)
+        ]);
+
+        if (conversationsResponse.ok && dmsResponse.ok) {
+          onJoinSuccess(); // This will trigger the parent's refreshConversations
+        }
+      } catch (error) {
+        console.error('Failed to poll conversations:', error);
+      }
+    };
+
+    const pollInterval = setInterval(pollConversations, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, [user.id, client, onJoinSuccess]);
+
   const handleJoinConversation = async (channelName: string) => {
     setJoinError('');
     setError('');
@@ -121,6 +144,10 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
         setSearchQuery('');
         setSearchResults([]);
         onJoinSuccess();
+        const joinedChannel = searchResults.find(c => c.name === channelName);
+        if (joinedChannel) {
+          onSelect(joinedChannel);
+        }
       } else {
         if (response.message.includes('already in the channel')) {
           setJoinError('You are already a member of this conversation');
@@ -158,6 +185,7 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
           setNewChannelName('');
           setNewChannelDescription('');
           onJoinSuccess();
+          onSelect(createResponse.channel);
         } else {
           setError('Created conversation but failed to join: ' + joinResponse.message);
         }
@@ -171,6 +199,15 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
       setIsLoading(false);
     }
   };
+
+  // Filter channels by type
+  const regularConversations = conversations.filter(
+    channel => channel.channel_type === ChannelType.CONVERSATION
+  );
+  
+  const dmConversations = conversations.filter(
+    channel => channel.channel_type === ChannelType.DM
+  );
 
   return (
     <div className={styles.container}>
@@ -193,6 +230,22 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
           </button>
         </div>
       </div>
+
+      {error && <div className={styles.error}>{error}</div>}
+      
+      <RecentChannels
+        title="Recent Conversations"
+        channels={regularConversations}
+        onChannelSelect={onSelect}
+      />
+
+      {dmConversations.length > 0 && (
+        <RecentChannels
+          title="Direct Messages"
+          channels={dmConversations}
+          onChannelSelect={onSelect}
+        />
+      )}
 
       {showSearchModal && (
         <div className={styles.modal}>
@@ -273,14 +326,6 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
           </div>
         </div>
       )}
-
-      {error && <div className={styles.error}>{error}</div>}
-      
-      <RecentChannels
-        title="Recent Conversations"
-        channels={conversations}
-        onChannelSelect={onSelect}
-      />
     </div>
   );
 };

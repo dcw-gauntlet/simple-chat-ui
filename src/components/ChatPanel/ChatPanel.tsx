@@ -9,7 +9,8 @@ interface ChatPanelProps {
   client: ApiClient;
   userId: string;
   onThreadCreate: (message: Message) => void;
-  onThreadOpen: (threadChannel: Channel, message: Message) => void;
+  onThreadOpen: (channel: Channel, message: Message) => void;
+  onStartDM: (userId: string, username?: string) => void;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ 
@@ -17,7 +18,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   client,
   userId,
   onThreadCreate,
-  onThreadOpen
+  onThreadOpen,
+  onStartDM
 }) => {
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [newMessage, setNewMessage] = React.useState('');
@@ -142,11 +144,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             currentUserId={userId}
             client={client}
             onThreadCreate={() => onThreadCreate(message)}
-            onThreadOpen={(threadChannel) => {
-              console.log('ChatPanel: calling onThreadOpen with:', threadChannel, message);
-              onThreadOpen(threadChannel, message);
-            }}
+            onThreadOpen={(threadChannel) => onThreadOpen(threadChannel, message)}
             onReactionUpdate={handleReactionUpdate}
+            onStartDM={(userId: string) => onStartDM(userId)}
           />
         ))}
         <div ref={messagesEndRef} />

@@ -1,17 +1,21 @@
 // Message.tsx
 import React, { useState } from 'react';
-import { Message as MessageType, Channel, ChannelType } from '../../types';
+import { Message as MessageType, Channel } from '../../types';
 import { ReactionPicker } from '../ReactionPicker/ReactionPicker';
+import { UserPanel } from '../UserPanel/UserPanel';
 import { ApiClient } from '../../client';
 import styles from './Message.module.css';
+import { Avatar } from '../ui';
+import { ChannelType } from '../../types';
 
 interface MessageProps {
   message: MessageType;
-  onThreadCreate: (message: MessageType) => void;
-  onThreadOpen: (threadChannel: Channel, message: MessageType) => void;
+  onThreadCreate: (messageId: string) => void;
+  onThreadOpen: (channel: Channel, parentMessage: MessageType) => void;
   currentUserId: string;
+  onStartDM: (userId: string) => void;
   client: ApiClient;
-  onReactionUpdate: () => void;
+  onReactionUpdate?: () => void;
 }
 
 const formatTimestamp = (timestamp: string): string => {
@@ -44,10 +48,12 @@ export const Message: React.FC<MessageProps> = ({
   onThreadCreate, 
   onThreadOpen,
   currentUserId,
+  onStartDM,
   client,
   onReactionUpdate 
 }) => {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [showUserPanel, setShowUserPanel] = useState(false);
   const isOwnMessage = message.sender.id === currentUserId;
   
   const handleReactionSelect = async (emoji: string) => {
@@ -56,8 +62,10 @@ export const Message: React.FC<MessageProps> = ({
         message_id: message.id,
         reaction: emoji,
         user_id: currentUserId
-      })
-      onReactionUpdate();
+      });
+      if (onReactionUpdate) {
+        onReactionUpdate();
+      }
     } catch (error) {
       console.error('Failed to add reaction:', error);
     } finally {
@@ -68,10 +76,8 @@ export const Message: React.FC<MessageProps> = ({
   const openThread = async () => {
     if (message.has_thread && message.thread_id) {
       try {
-        // Fetch the thread channel details
         const response = await client.getChannel(message.thread_id);
         if (response.ok && response.channel) {
-          console.log('Thread channel fetched:', response.channel);
           onThreadOpen(response.channel, message);
         } else {
           console.error('Failed to fetch thread channel:', response.message);
@@ -83,7 +89,6 @@ export const Message: React.FC<MessageProps> = ({
   };
 
   const handleThreadCreate = async () => {
-    // If thread exists, just open it and return early
     if (message.has_thread && message.thread_id) {
       try {
         const response = await client.getChannel(message.thread_id);
@@ -146,7 +151,13 @@ export const Message: React.FC<MessageProps> = ({
     <>
       <div className={`${styles.messageContainer} ${isOwnMessage ? styles.ownMessage : ''}`}>
         <div className={styles.avatar}>
-          <img src={message.sender.profile_picture} alt={message.sender.username} />
+          <Avatar
+            src={message.sender.profile_picture}
+            username={message.sender.username}
+            status={message.sender.status}
+            size="medium"
+            onClick={() => setShowUserPanel(true)}
+          />
         </div>
 
         <div className={styles.messageHeader}>
@@ -203,6 +214,16 @@ export const Message: React.FC<MessageProps> = ({
           onClose={() => setShowReactionPicker(false)}
         />
       )}
+      
+      <UserPanel
+        isOpen={showUserPanel}
+        onClose={() => setShowUserPanel(false)}
+        username={message.sender.username}
+        avatarUrl={message.sender.profile_picture}
+        status={message.sender.status}
+        userId={message.sender.id}
+        onStartDM={onStartDM}
+      />
     </>
   );
 };

@@ -1,0 +1,58 @@
+.user-panel {
+  padding: 24px;
+  width: 100%;
+}
+
+.user-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.user-panel-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.username {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.status {
+  font-size: 14px;
+  color: #666;
+  text-transform: capitalize;
+}
+
+.user-panel-actions {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 8px;
+}
+
+.dm-button {
+  padding: 8px 16px;
+  background-color: #4a5568;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.dm-button:hover {
+  background-color: #2d3748;
+}
+
+.dm-button:active {
+  background-color: #1a202c;
+}
+  

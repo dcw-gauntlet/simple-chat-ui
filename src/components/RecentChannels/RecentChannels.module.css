@@ -15,17 +15,14 @@
 }
 
 .channelList {
-  list-style: none;
+  max-height: calc(var(--channel-item-height, 80px) * 3);
+  overflow-y: auto;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
 
 .channelItem {
-  cursor: pointer;
-  transition: opacity 0.2s ease;
+  height: var(--channel-item-height, 80px);
 }
 
 .channelItem:hover {

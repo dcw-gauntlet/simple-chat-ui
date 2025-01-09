@@ -6,6 +6,7 @@ import {
   Channel,
   ChannelMembership,
   Message,
+  UserResponse
 } from './types';
 
 const API_URL = 'http://venus:8080';
@@ -90,6 +91,7 @@ interface CreateChannelRequest {
   channel_type: ChannelType;
   creator_id: string;
   description: string;
+  recipient_id?: string;
   parent_channel_id?: string;
   parent_message_id?: string;
 }
@@ -196,7 +198,7 @@ export class ApiClient {
 
   async getConversations(userId: string): Promise<GetConversationsResponse> {
     try {
-      return this.request<GetConversationsResponse>('/my_channels', {
+      const response = await this.request<GetConversationsResponse>('/my_channels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -204,6 +206,7 @@ export class ApiClient {
           channel_type: ChannelType.CONVERSATION
         })
       });
+      return response;
     } catch (error) {
       console.error('Get conversations error:', error);
       return {
@@ -242,7 +245,6 @@ export class ApiClient {
           content: data.content
         })
       });
-      console.log('Server message response:', response);
       return response;
     } catch (error) {
       console.error('Send message error:', error);
@@ -289,7 +291,6 @@ export class ApiClient {
 
   async addThread(data: AddThreadRequest): Promise<BaseResponse> {
     try {
-      console.log('Adding thread with data:', data);
       return this.request<BaseResponse>('/add_thread', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -347,7 +348,7 @@ export class ApiClient {
   // Add a method for getting DM channels if needed
   async getDMChannels(userId: string): Promise<GetConversationsResponse> {
     try {
-      return this.request<GetConversationsResponse>('/my_channels', {
+      const response = await this.request<GetConversationsResponse>('/my_channels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -355,6 +356,11 @@ export class ApiClient {
           channel_type: ChannelType.DM
         })
       });
+      console.log('getDMChannels request:', {
+        user_id: userId,
+        channel_type: ChannelType.DM
+      });
+      return response;
     } catch (error) {
       console.error('Get DM channels error:', error);
       return {
@@ -363,6 +369,14 @@ export class ApiClient {
         channels: []
       };
     }
+  }
+
+  async getUser(userId: string): Promise<UserResponse> {
+    return this.request<UserResponse>('/get_user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId })
+    });
   }
 }
 

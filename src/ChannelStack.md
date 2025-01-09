@@ -46,3 +46,12 @@ The user has the stack [ CA, CB-1, CB-1-A ] and opens a channel CB-2 from the pr
     Primary Chat Channel: CA
     Secondary Chat Channel: CB-2
 
+The user has the stack [ CA, CB-1, CB-1-A ] and creates a channel X from the conversation panel.
+    Stack: [ X ]
+    Primary Chat Channel: X
+    Secondary Chat Channel: None
+
+The user has the stack [ CA, CB-1, CB-1-A ] and joins a channel X from the search option on the conversation panel.
+    Stack: [ X ]
+    Primary Chat Channel: X
+    Secondary Chat Channel: None

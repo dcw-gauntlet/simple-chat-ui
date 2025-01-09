@@ -33,8 +33,8 @@ export interface PopulatedMessage extends Omit<Message, 'sender'> {
 
 export enum ChannelType {
   CONVERSATION = 'conversation',
-  DM = 'dm',
   THREAD = 'thread',
+  DM = 'dm',
   ALL = 'all',
 }
 
@@ -59,4 +59,13 @@ export enum UserStatus {
   AWAY = 'away',
   DO_NOT_DISTURB = 'do_not_disturb',
   INVISIBLE = 'invisible',
+}
+
+export interface BaseResponse {
+  message: string;
+  ok: boolean;
+}
+
+export interface UserResponse extends BaseResponse {
+  user: User;
 }

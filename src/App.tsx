@@ -37,12 +37,25 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
 
   const refreshConversations = async () => {
     try {
-      const response = await client.getConversations(user.id);
-      if (response.ok) {
-        setConversations(response.channels);
+      // Get both regular conversations and DMs
+      const [conversationsResponse, dmsResponse] = await Promise.all([
+        client.getConversations(user.id),
+        client.getDMChannels(user.id)
+      ]);
+
+      console.log('Polling - DMs response:', dmsResponse);
+      console.log('Polling - Conversations response:', conversationsResponse);
+
+      if (conversationsResponse.ok && dmsResponse.ok) {
+        const allChannels = [
+          ...conversationsResponse.channels,
+          ...dmsResponse.channels
+        ];
+        console.log('Polling - Combined channels:', allChannels);
+        setConversations(allChannels);
         setError('');
       } else {
-        setError(response.message || 'Failed to load conversations');
+        setError('Failed to load conversations');
       }
     } catch (err) {
       setError('Unable to load conversations');
@@ -86,14 +99,24 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
       });
 
       if (threadResponse.ok && threadResponse.channel) {
-        // Check if this message is from the primary panel by comparing channel IDs
-        const fromPrimaryPanel = conversationStack.length > 0 && 
-          message.channel_id === conversationStack[0].id;
+        // Join the channel immediately after creation
+        const joinResponse = await client.joinChannel({
+          username: user.username,
+          channel_name: threadResponse.channel.name
+        });
         
-        openThreadInStack(threadResponse.channel, fromPrimaryPanel);
+        if (joinResponse.ok) {
+          // Check if this message is from the primary panel by comparing channel IDs
+          const fromPrimaryPanel = conversationStack.length > 0 && 
+            message.channel_id === conversationStack[0].id;
+          
+          openThreadInStack(threadResponse.channel, fromPrimaryPanel);
+        } else {
+          console.error('Failed to join thread:', joinResponse.message);
+        }
       }
     } catch (error) {
-      console.error('Failed to create thread:', error);
+      console.error('Failed to create or join thread:', error);
     }
   };
 
@@ -104,6 +127,83 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
       message.channel_id === conversationStack[0].id;
     
     openThreadInStack(threadChannel, fromPrimaryPanel);
+  };
+
+  const handleStartDM = async (targetUserId: string, targetUsername?: string) => {
+    try {
+      // First check if we already have a DM channel with this user
+      const existingDM = conversations.find(channel => {
+        if (channel.channel_type !== ChannelType.DM) return false;
+        
+        // Check for channel ID that contains both user IDs
+        const id1 = `${user.id}_dm_${targetUserId}`;
+        const id2 = `${targetUserId}_dm_${user.id}`;
+        return channel.id === id1 || channel.id === id2;
+      });
+
+      if (existingDM) {
+        // If DM exists, make sure both users are members
+        await Promise.all([
+          client.joinChannel({
+            username: user.username,
+            channel_name: existingDM.name
+          }),
+          client.joinChannel({
+            username: targetUsername!,
+            channel_name: existingDM.name
+          })
+        ]);
+        handleChannelSelect(existingDM);
+        return;
+      }
+
+      // If we don't have the username, fetch the user details
+      let username = targetUsername;
+      if (!username) {
+        const userResponse = await client.getUser(targetUserId);
+        if (!userResponse.ok || !userResponse.user) {
+          console.error('Failed to get target user details');
+          return;
+        }
+        username = userResponse.user.username;
+      }
+
+      // Create new DM channel
+      const response = await client.createChannel({
+        name: `DM ${user.username} ${username}`,
+        channel_type: ChannelType.DM,
+        creator_id: user.id,
+        description: `Direct messages between ${user.username} and ${username}`,
+        recipient_id: targetUserId
+      });
+
+      if (response.ok && response.channel) {
+        // Add both users to the channel
+        await Promise.all([
+          client.joinChannel({
+            username: user.username,
+            channel_name: response.channel.name
+          }),
+          client.joinChannel({
+            username: username!,
+            channel_name: response.channel.name
+          })
+        ]);
+
+        // Add the channel to conversations if it's not already there
+        setConversations(prev => {
+          if (!prev.find(c => c.id === response.channel.id)) {
+            return [...prev, response.channel];
+          }
+          return prev;
+        });
+
+        // Open the channel
+        handleChannelSelect(response.channel);
+      }
+    } catch (error) {
+      console.error('Failed to start DM:', error);
+    }
   };
 
   return (
@@ -144,13 +244,11 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
           <>
             <div className="chat-panel-container">
               <ChatPanel
-                // For primary panel, show second-to-last channel if stack > 1, otherwise show first channel
                 channel={conversationStack.length > 1 
                   ? conversationStack[conversationStack.length - 2] 
                   : conversationStack[0]}
                 client={client}
-                onThreadOpen={(threadChannel: Channel, message: Message) => 
-                  handleThreadOpen(threadChannel, message)}
+                onThreadOpen={handleThreadOpen}
                 userId={user.id}
                 onThreadCreate={(message: Message) => handleThreadCreate(
                   conversationStack.length > 1 
@@ -158,6 +256,7 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
                     : conversationStack[0],
                   message
                 )}
+                onStartDM={handleStartDM}
               />
             </div>
             
@@ -174,6 +273,7 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
                   )}
                   onThreadOpen={(threadChannel, message) => 
                     handleThreadOpen(threadChannel, message)}
+                  onStartDM={handleStartDM}
                 />
               </div>
             )}
