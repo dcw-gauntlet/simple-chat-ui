@@ -26,8 +26,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
+
+  // Scroll to bottom whenever messages change or when the channel changes
+  React.useEffect(() => {
+    scrollToBottom();
+  }, [messages, channel?.id]);
 
   // Load and poll messages
   React.useEffect(() => {
@@ -135,7 +142,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             currentUserId={userId}
             client={client}
             onThreadCreate={() => onThreadCreate(message)}
-            onThreadOpen={() => message.thread ? onThreadOpen(message.thread, message) : undefined}
+            onThreadOpen={(threadChannel) => {
+              console.log('ChatPanel: calling onThreadOpen with:', threadChannel, message);
+              onThreadOpen(threadChannel, message);
+            }}
             onReactionUpdate={handleReactionUpdate}
           />
         ))}

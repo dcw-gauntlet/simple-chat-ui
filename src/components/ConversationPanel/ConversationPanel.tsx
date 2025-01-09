@@ -4,12 +4,13 @@ import { Channel, ChannelType } from './../../types';
 import { ApiClient } from '../../client';
 import styles from './ConversationPanel.module.css';
 import { ChannelDisplay } from '../ChannelDisplay/ChannelDisplay';
+import { User } from '../../types';
 
 interface ConversationPanelProps {
   conversations: Channel[];
   onSelect: (channel: Channel) => void;
   client: ApiClient;
-  username: string;
+  user: User;
   onJoinSuccess: () => void;
 }
 
@@ -53,7 +54,7 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
   conversations,
   onSelect,
   client,
-  username,
+  user,
   onJoinSuccess
 }) => {
   const [error, setError] = useState('');
@@ -111,7 +112,7 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
 
     try {
       const response = await client.joinChannel({
-        username: username,
+        username: user.username,
         channel_name: channelName
       });
 
@@ -142,13 +143,13 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
       const createResponse = await client.createChannel({
         name: newChannelName,
         channel_type: ChannelType.CONVERSATION,
-        creator_id: username,
+        creator_id: user.id,
         description: newChannelDescription
       });
 
       if (createResponse.ok && createResponse.channel) {
         const joinResponse = await client.joinChannel({
-          username: username,
+          username: user.username,
           channel_name: createResponse.channel.name
         });
 

@@ -23,7 +23,7 @@ export interface Message {
   reactions: { [emoji: string]: number };
   has_thread: boolean;
   has_image: boolean;
-  thread?: Channel;
+  thread_id: string;
   image?: string;
 }
 
@@ -35,6 +35,7 @@ export enum ChannelType {
   CONVERSATION = 'conversation',
   DM = 'dm',
   THREAD = 'thread',
+  ALL = 'all',
 }
 
 export interface Channel {

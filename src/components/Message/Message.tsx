@@ -7,8 +7,8 @@ import styles from './Message.module.css';
 
 interface MessageProps {
   message: MessageType;
-  onThreadCreate: (threadChannel: Channel) => void;
-  onThreadOpen: (threadChannel: Channel) => void;
+  onThreadCreate: (message: MessageType) => void;
+  onThreadOpen: (threadChannel: Channel, message: MessageType) => void;
   currentUserId: string;
   client: ApiClient;
   onReactionUpdate: () => void;
@@ -65,49 +65,73 @@ export const Message: React.FC<MessageProps> = ({
     }
   };
 
-  const openThread = () => {
-    if (message.has_thread && message.thread) {
-      onThreadOpen(message.thread);
+  const openThread = async () => {
+    if (message.has_thread && message.thread_id) {
+      try {
+        // Fetch the thread channel details
+        const response = await client.getChannel(message.thread_id);
+        if (response.ok && response.channel) {
+          console.log('Thread channel fetched:', response.channel);
+          onThreadOpen(response.channel, message);
+        } else {
+          console.error('Failed to fetch thread channel:', response.message);
+        }
+      } catch (error) {
+        console.error('Error fetching thread:', error);
+      }
     }
   };
 
   const handleThreadCreate = async () => {
     // If thread exists, just open it and return early
-    if (message.has_thread && message.thread) {
-      onThreadCreate(message.thread);
+    if (message.has_thread && message.thread_id) {
+      try {
+        const response = await client.getChannel(message.thread_id);
+        if (response.ok && response.channel) {
+          onThreadOpen(response.channel, message);
+        }
+      } catch (error) {
+        console.error('Error fetching thread:', error);
+      }
       return;
     }
 
-    // Only proceed with channel creation if there's no existing thread
+    // Create new thread
     try {
-      // Create a new channel for the thread
-      const channelResponse = await client.createChannel({
-        name: `Thread-${message.id}`,
+      console.log('Message object:', {
+        messageId: message.id,
+        channelId: message.channel_id,
+        messageContent: message.content
+      });
+
+      // Create the thread channel first
+      const threadName = `${message.content.substring(0, 20)}${message.content.length > 20 ? '...' : ''} - Thread`;
+      const createChannelResponse = await client.createChannel({
+        name: threadName,
         channel_type: ChannelType.THREAD,
         creator_id: currentUserId,
-        description: `Thread for message: ${message.content || message.text}`,
-        parent_message_id: message.id
+        description: `Thread from message: ${message.id}`
       });
 
-      if (!channelResponse.ok || !channelResponse.channel) {
-        throw new Error('Failed to create thread channel');
+      if (!createChannelResponse.ok || !createChannelResponse.channel) {
+        console.error('Failed to create thread channel');
+        return;
       }
 
-      // Associate it with the message
-      const threadResponse = await client.addThread({
+      // Add the thread to the message
+      const addThreadResponse = await client.addThread({
         message_id: message.id,
-        channel_id: channelResponse.channel.id
+        channel_id: createChannelResponse.channel.id
       });
 
-      if (!threadResponse.ok) {
-        throw new Error('Failed to add thread to message');
+      if (addThreadResponse.ok) {
+        // Only open the thread after successfully adding it to the message
+        onThreadOpen(createChannelResponse.channel, message);
+      } else {
+        console.error('Failed to add thread to message');
       }
-
-      // Update the UI
-      onThreadCreate(channelResponse.channel);
     } catch (error) {
-      console.error('Failed to create thread:', error);
-      // You might want to show an error toast/notification here
+      console.error('Error creating thread:', error);
     }
   };
 
@@ -160,9 +184,7 @@ export const Message: React.FC<MessageProps> = ({
               className={styles.viewRepliesLink}
               onClick={openThread}
             >
-              {message.thread?.members_count 
-                ? `${message.thread.members_count} replies`
-                : 'View replies'} →
+              View replies →
             </button>
           ) : (
             <button 

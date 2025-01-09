@@ -19,17 +19,13 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
   const [error, setError] = useState('');
 
   const handleChannelSelect = (channel: Channel) => {
-    setConversationStack(prevStack => {
-      if (prevStack[prevStack.length - 1]?.id === channel.id) {
-        return prevStack;
-      }
-      return [...prevStack, channel];
-    });
+    setConversationStack([channel]);
   };
 
   const handleShiftConversations = () => {
     setConversationStack(prevStack => {
       if (prevStack.length <= 1) return prevStack;
+      // Remove the last conversation and return to previous state
       return prevStack.slice(0, -1);
     });
   };
@@ -63,15 +59,12 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
   // New helper function to handle opening a thread in the conversation stack
   const openThreadInStack = (threadChannel: Channel, fromPrimaryPanel: boolean = false) => {
     setConversationStack(prevStack => {
-      // If opening from primary panel, drop the secondary panel first
-      if (fromPrimaryPanel && prevStack.length > 1) {
+      // If opening from primary panel, drop everything after primary and add new channel
+      if (fromPrimaryPanel) {
         return [prevStack[0], threadChannel];
       }
       
-      // Otherwise proceed with normal stack behavior
-      if (prevStack[prevStack.length - 1]?.id === threadChannel.id) {
-        return prevStack;
-      }
+      // If opening from secondary panel, just add the new channel to the stack
       return [...prevStack, threadChannel];
     });
   };
@@ -105,6 +98,7 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
   };
 
   const handleThreadOpen = (threadChannel: Channel, message: Message) => {
+    console.log('Opening thread:', threadChannel, message);
     // Check if this message is from the primary panel by comparing channel IDs
     const fromPrimaryPanel = conversationStack.length > 0 && 
       message.channel_id === conversationStack[0].id;
@@ -141,23 +135,27 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
             onSelect={handleChannelSelect}
             client={client}
             onJoinSuccess={refreshConversations}
-            username={user.username}
+            user={user}
           />
         )}
       </div>
       <div className="main-content">
-        {conversationStack.length > 0 && (
+        {conversationStack.length > 0 ? (
           <>
             <div className="chat-panel-container">
               <ChatPanel
-                channel={conversationStack.length > 1 ? 
-                  conversationStack[conversationStack.length - 2] : 
-                  conversationStack[0]}
+                // For primary panel, show second-to-last channel if stack > 1, otherwise show first channel
+                channel={conversationStack.length > 1 
+                  ? conversationStack[conversationStack.length - 2] 
+                  : conversationStack[0]}
                 client={client}
-                onThreadOpen={(threadChannel: Channel, message: Message) => handleThreadOpen(threadChannel, message)}
+                onThreadOpen={(threadChannel: Channel, message: Message) => 
+                  handleThreadOpen(threadChannel, message)}
                 userId={user.id}
                 onThreadCreate={(message: Message) => handleThreadCreate(
-                  conversationStack[conversationStack.length - 1],
+                  conversationStack.length > 1 
+                    ? conversationStack[conversationStack.length - 2]
+                    : conversationStack[0],
                   message
                 )}
               />
@@ -166,6 +164,7 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
             {conversationStack.length > 1 && (
               <div className="chat-panel-container">
                 <ChatPanel
+                  // For secondary panel, show the last channel in stack
                   channel={conversationStack[conversationStack.length - 1]}
                   client={client}
                   userId={user.id}
@@ -173,7 +172,8 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
                     conversationStack[conversationStack.length - 1],
                     message
                   )}
-                  onThreadOpen={(threadChannel, message) => handleThreadOpen(threadChannel, message)}
+                  onThreadOpen={(threadChannel, message) => 
+                    handleThreadOpen(threadChannel, message)}
                 />
               </div>
             )}
@@ -187,6 +187,13 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
               </button>
             )}
           </>
+        ) : (
+          // Show placeholder when no channels are open
+          <div className="chat-panel-container">
+            <div className="placeholder-message">
+              Select a conversation to begin chatting
+            </div>
+          </div>
         )}
       </div>
     </div>

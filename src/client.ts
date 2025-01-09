@@ -57,6 +57,11 @@ interface AddThreadRequest {
   channel_id: string;
 }
 
+// Add new response type
+interface GetChannelResponse extends BaseResponse {
+  channel: Channel;
+}
+
 // ----- Request body types -----
 
 interface RegisterRequest {
@@ -101,13 +106,19 @@ interface SendMessageRequest {
 }
 
 interface SendMessageResponse extends BaseResponse {
-  sent_message: Message;  // Changed from user_message to sent_message
+  sent_message: Message;  // This should contain the server-generated message ID
 }
 
 interface ReactionRequest {
   message_id: string;
   reaction: string;
   user_id: string;
+}
+
+// Update the request type
+interface MyChannelsRequest {
+  user_id: string;
+  channel_type: ChannelType;
 }
 
 export class ApiClient {
@@ -185,19 +196,19 @@ export class ApiClient {
 
   async getConversations(userId: string): Promise<GetConversationsResponse> {
     try {
-      const response = await this.request<GetConversationsResponse>('/my_channels', {
-        method: 'GET',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        // Add query parameter for user_id
-        params: { user_id: userId }
+      return this.request<GetConversationsResponse>('/my_channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          channel_type: ChannelType.CONVERSATION
+        })
       });
-      return response;
     } catch (error) {
+      console.error('Get conversations error:', error);
       return {
         ok: false,
-        message: 'Failed to load conversations',
+        message: 'Failed to get conversations',
         channels: []
       };
     }
@@ -231,7 +242,7 @@ export class ApiClient {
           content: data.content
         })
       });
-      console.log('Send message response:', response);
+      console.log('Server message response:', response);
       return response;
     } catch (error) {
       console.error('Send message error:', error);
@@ -278,16 +289,78 @@ export class ApiClient {
 
   async addThread(data: AddThreadRequest): Promise<BaseResponse> {
     try {
+      console.log('Adding thread with data:', data);
       return this.request<BaseResponse>('/add_thread', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+          message_id: data.message_id,
+          channel_id: data.channel_id
+        })
       });
     } catch (error) {
       console.error('Add thread error:', error);
       return {
         ok: false,
         message: 'Failed to add thread'
+      };
+    }
+  }
+
+  async getChannel(channelId: string): Promise<GetChannelResponse> {
+    try {
+      return this.request<GetChannelResponse>(`/get_channel/${channelId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      console.error('Get channel error:', error);
+      return {
+        ok: false,
+        message: 'Failed to get channel',
+        channel: null as any
+      };
+    }
+  }
+
+  // Add a method specifically for getting thread channels if needed
+  async getThreadChannels(userId: string): Promise<GetConversationsResponse> {
+    try {
+      return this.request<GetConversationsResponse>('/my_channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          channel_type: ChannelType.THREAD
+        })
+      });
+    } catch (error) {
+      console.error('Get thread channels error:', error);
+      return {
+        ok: false,
+        message: 'Failed to get thread channels',
+        channels: []
+      };
+    }
+  }
+
+  // Add a method for getting DM channels if needed
+  async getDMChannels(userId: string): Promise<GetConversationsResponse> {
+    try {
+      return this.request<GetConversationsResponse>('/my_channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          channel_type: ChannelType.DM
+        })
+      });
+    } catch (error) {
+      console.error('Get DM channels error:', error);
+      return {
+        ok: false,
+        message: 'Failed to get DM channels',
+        channels: []
       };
     }
   }
