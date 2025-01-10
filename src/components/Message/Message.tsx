@@ -6,7 +6,7 @@ import { UserPanel } from '../UserPanel/UserPanel';
 import { ApiClient } from '../../client';
 import styles from './Message.module.css';
 import { Avatar } from '../ui';
-import { ChannelType } from '../../types';
+import { ChannelType, UserStatus } from '../../types';
 
 interface MessageProps {
   message: MessageType;
@@ -16,6 +16,7 @@ interface MessageProps {
   onStartDM: (userId: string) => void;
   client: ApiClient;
   onReactionUpdate?: () => void;
+  isSearchResult?: boolean;
 }
 
 const formatTimestamp = (timestamp: string): string => {
@@ -50,7 +51,8 @@ export const Message: React.FC<MessageProps> = ({
   currentUserId,
   onStartDM,
   client,
-  onReactionUpdate 
+  onReactionUpdate,
+  isSearchResult = false
 }) => {
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [showUserPanel, setShowUserPanel] = useState(false);
@@ -140,12 +142,55 @@ export const Message: React.FC<MessageProps> = ({
     }
   };
 
+  const handleFileDownload = async () => {
+    if (!message.file_id) return;
+    
+    try {
+      const blob = await client.downloadFile(message.file_id);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = message.file_name || 'download';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+  };
+
   // Convert reactions object to array for rendering
   const reactionsList = Object.entries(message.reactions || {}).map(([emoji, count]) => ({
     emoji,
     count,
     users: [] // We don't have users info in the current API response
   }));
+
+  // Don't show interactive elements in search results
+  if (isSearchResult) {
+    return (
+      <div className={`${styles.messageContainer} ${styles.searchResult}`}>
+        <div className={styles.avatar}>
+          <Avatar
+            src={message.sender.profile_picture}
+            username={message.sender.username}
+            userId={message.sender.id}
+            size="small"
+          />
+        </div>
+
+        <div className={styles.messageHeader}>
+          <span className={styles.username}>{message.sender.username}</span>
+          <span className={styles.timestamp}>{formatTimestamp(message.sent)}</span>
+        </div>
+
+        <div className={styles.messageContent}>
+          {message.content || message.text}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -180,8 +225,27 @@ export const Message: React.FC<MessageProps> = ({
           </div>
         )}
 
+        {message.file_id && (
+          <div className={styles.fileAttachment}>
+            <div className={styles.fileIcon}>
+              📎
+            </div>
+            <div className={styles.fileInfo}>
+              <span className={styles.fileName}>{message.file_name}</span>
+              <span className={styles.fileType}>{message.file_content_type}</span>
+            </div>
+            <button 
+              className={styles.downloadButton}
+              onClick={handleFileDownload}
+              aria-label="Download file"
+            >
+              Download
+            </button>
+          </div>
+        )}
+
         <div className={styles.reactions}>
-          {Object.entries(message.reactions).map(([emoji, count]) => (
+          {reactionsList.map(({emoji, count}) => (
             <div key={emoji} className={styles.reaction}>
               <span>{emoji}</span>
               <span>{count}</span>
@@ -220,7 +284,7 @@ export const Message: React.FC<MessageProps> = ({
         onClose={() => setShowUserPanel(false)}
         username={message.sender.username}
         avatarUrl={message.sender.profile_picture}
-        status={message.sender.status}
+        status={message.sender.status as UserStatus}
         userId={message.sender.id}
         onStartDM={onStartDM}
       />

@@ -1,0 +1,43 @@
+.search-result {
+  padding: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.search-result:hover {
+  background-color: #f5f5f5;
+}
+
+.search-result__channel {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
+.search-result__messages {
+  font-size: 13px;
+}
+
+.search-result__context-message {
+  color: #666;
+  padding: 4px 0;
+}
+
+.search-result__matched-message {
+  background-color: #fff3cd;
+  padding: 8px;
+  margin: 4px 0;
+  border-radius: 4px;
+}
+
+.search-result__sender {
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-right: 8px;
+}
+
+/* Add a subtle visual separator between messages */
+.search-result__messages > div + div {
+  margin-top: 4px;
+} 

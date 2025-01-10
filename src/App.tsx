@@ -3,10 +3,12 @@ import './App.css';
 import { client } from './client';
 import React, { useState, useEffect } from 'react';
 import { LoginForm } from './components/LoginForm/LoginForm';
-import { User, Channel, Message, ChannelType } from './types';
+import { User, Channel, Message, ChannelType, SearchResultData } from './types';
 import { ConversationPanel } from './components/ConversationPanel/ConversationPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
 import { UserPresence } from './UserPresence';
+import { SearchField } from './components/Search/SearchField';
+import { SearchPanel } from './components/Search/SearchPanel';
 
 interface LoggedInProps {
   user: User;
@@ -18,6 +20,8 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
   const [conversations, setConversations] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResultData[]>([]);
 
   const handleChannelSelect = (channel: Channel) => {
     setConversationStack([channel]);
@@ -207,6 +211,28 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
     }
   };
 
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const response = await client.searchMessages({
+        query: query,
+        userId: user.id
+      });
+
+      if (response.ok) {
+        setSearchResults(response.results);
+      }
+    } catch (error) {
+      console.error('Search failed:', error);
+    }
+  };
+
   // Add UserPresence setup
   useEffect(() => {
     const presence = new UserPresence(user.id);
@@ -251,60 +277,75 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
         )}
       </div>
       <div className="main-content">
-        {conversationStack.length > 0 ? (
-          <>
-            <div className="chat-panel-container">
-              <ChatPanel
-                channel={conversationStack.length > 1 
-                  ? conversationStack[conversationStack.length - 2] 
-                  : conversationStack[0]}
-                client={client}
-                onThreadOpen={handleThreadOpen}
-                userId={user.id}
-                onThreadCreate={(message: Message) => handleThreadCreate(
-                  conversationStack.length > 1 
-                    ? conversationStack[conversationStack.length - 2]
-                    : conversationStack[0],
-                  message
-                )}
-                onStartDM={handleStartDM}
-              />
-            </div>
-            
-            {conversationStack.length > 1 && (
+        <SearchField onSearch={handleSearch} />
+        
+        {searchQuery ? (
+          <SearchPanel 
+            searchResults={searchResults || []}
+            onResultClick={(channelId) => {
+              const channel = conversations.find(c => c.id === channelId);
+              if (channel) {
+                handleChannelSelect(channel);
+                setSearchQuery(''); // Clear search when selecting a channel
+                setSearchResults([]);
+              }
+            }}
+          />
+        ) : (
+          conversationStack.length > 0 ? (
+            <>
               <div className="chat-panel-container">
                 <ChatPanel
-                  // For secondary panel, show the last channel in stack
-                  channel={conversationStack[conversationStack.length - 1]}
+                  channel={conversationStack.length > 1 
+                    ? conversationStack[conversationStack.length - 2] 
+                    : conversationStack[0]}
                   client={client}
+                  onThreadOpen={handleThreadOpen}
                   userId={user.id}
-                  onThreadCreate={(message) => handleThreadCreate(
-                    conversationStack[conversationStack.length - 1],
+                  onThreadCreate={(message: Message) => handleThreadCreate(
+                    conversationStack.length > 1 
+                      ? conversationStack[conversationStack.length - 2]
+                      : conversationStack[0],
                     message
                   )}
-                  onThreadOpen={(threadChannel, message) => 
-                    handleThreadOpen(threadChannel, message)}
                   onStartDM={handleStartDM}
                 />
               </div>
-            )}
+              
+              {conversationStack.length > 1 && (
+                <div className="chat-panel-container">
+                  <ChatPanel
+                    // For secondary panel, show the last channel in stack
+                    channel={conversationStack[conversationStack.length - 1]}
+                    client={client}
+                    userId={user.id}
+                    onThreadCreate={(message) => handleThreadCreate(
+                      conversationStack[conversationStack.length - 1],
+                      message
+                    )}
+                    onThreadOpen={(threadChannel, message) => 
+                      handleThreadOpen(threadChannel, message)}
+                    onStartDM={handleStartDM}
+                  />
+                </div>
+              )}
 
-            {conversationStack.length > 1 && (
-              <button 
-                className="shift-button"
-                onClick={handleShiftConversations}
-              >
-                Shift Conversations
-              </button>
-            )}
-          </>
-        ) : (
-          // Show placeholder when no channels are open
-          <div className="chat-panel-container">
-            <div className="placeholder-message">
-              Select a conversation to begin chatting
+              {conversationStack.length > 1 && (
+                <button 
+                  className="shift-button"
+                  onClick={handleShiftConversations}
+                >
+                  Shift Conversations
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="chat-panel-container">
+              <div className="placeholder-message">
+                Select a conversation to begin chatting
+              </div>
             </div>
-          </div>
+          )
         )}
       </div>
     </div>

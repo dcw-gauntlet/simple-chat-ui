@@ -23,16 +23,15 @@ body {
 
 .main-content {
   display: flex;
-  flex-direction: row;
-  gap: 1rem;
+  flex-direction: column;
   flex: 1;
   overflow: hidden;
 }
 
 .chat-panel-container {
   flex: 1;
-  min-width: 0; /* Prevents flex items from overflowing */
-  height: 100%;
+  overflow: hidden;
+  border-left: 1px solid #e0e0e0;
 }
 
 .user-profile {

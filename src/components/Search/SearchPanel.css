@@ -1,0 +1,13 @@
+.search-panel {
+  height: 100%;
+  overflow: auto;
+}
+
+.search-panel__empty {
+  padding: 16px;
+  text-align: center;
+}
+
+.search-panel__empty-text {
+  color: #666;
+} 

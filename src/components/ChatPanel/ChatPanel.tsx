@@ -26,6 +26,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState('');
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -73,20 +75,41 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!channel || !newMessage.trim() || isLoading) return;
+    if (!channel || (!newMessage.trim() && !selectedFile) || isLoading) return;
 
     setIsLoading(true);
     setError('');
 
     try {
+      let fileId: string | undefined;
+      
+      // Upload file first if one is selected
+      if (selectedFile) {
+        const uploadResponse = await client.uploadFile(selectedFile);
+        if (!uploadResponse.ok) {
+          setError('Failed to upload file');
+          setIsLoading(false);
+          return;
+        }
+        fileId = uploadResponse.file_id;
+      }
+
       const response = await client.sendMessage({
         channel_id: channel.id,
         user_id: userId,
-        content: newMessage.trim()
+        content: newMessage.trim(),
+        file_id: fileId,
+        filename: fileId ? selectedFile!.name : undefined,
+        content_type: fileId ? selectedFile!.type : undefined
       });
 
       if (response.ok) {
         setNewMessage('');
+        setSelectedFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        
         // Immediately fetch new messages
         const messagesResponse = await client.getChannelMessages(channel.id);
         if (messagesResponse.ok) {
@@ -113,6 +136,20 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       }
     } catch (err) {
       console.error('Error refreshing messages:', err);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const clearSelectedFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -153,14 +190,38 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
       {error && <div className={styles.error}>{error}</div>}
       <form onSubmit={handleSendMessage} className={styles.messageForm}>
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message..."
-          disabled={isLoading}
-        />
-        <button type="submit" disabled={isLoading || !newMessage.trim()}>
+        <div className={styles.inputContainer}>
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type a message..."
+            disabled={isLoading}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileSelect}
+            className={styles.fileInput}
+            disabled={isLoading}
+          />
+        </div>
+        {selectedFile && (
+          <div className={styles.selectedFile}>
+            <span>{selectedFile.name}</span>
+            <button
+              type="button"
+              onClick={clearSelectedFile}
+              className={styles.clearFile}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        <button 
+          type="submit" 
+          disabled={isLoading || (!newMessage.trim() && !selectedFile)}
+        >
           {isLoading ? 'Sending...' : 'Send'}
         </button>
       </form>

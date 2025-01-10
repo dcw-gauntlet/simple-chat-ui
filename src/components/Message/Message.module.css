@@ -124,6 +124,7 @@
   flex-wrap: wrap;
   gap: 4px;
   min-height: 24px;
+  margin-top: 4px;
 }
 
 .ownMessage .reactions {
@@ -226,4 +227,86 @@
 
 .viewRepliesLink:hover {
   text-decoration: underline;
+}
+
+.fileAttachment {
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  max-width: 400px;
+  transition: background-color 0.2s;
+}
+
+.fileAttachment:hover {
+  background: #f0f0f0;
+}
+
+.fileIcon {
+  font-size: 24px;
+  margin-right: 12px;
+  color: #666;
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fileName {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #2196f3;
+}
+
+.fileType {
+  font-size: 0.8em;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.downloadButton {
+  background: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  margin-left: 16px;
+}
+
+.downloadButton:hover {
+  background: #1976d2;
+}
+
+.searchResult {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.searchResult:hover {
+  background-color: #f5f5f5;
+}
+
+.searchResult .avatar {
+  width: 24px;
+  height: 24px;
+}
+
+.searchResult .messageHeader {
+  font-size: 0.9em;
+}
+
+.searchResult .messageContent {
+  color: #333;
 }

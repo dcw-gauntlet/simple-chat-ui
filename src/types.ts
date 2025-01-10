@@ -12,19 +12,17 @@ export interface Message {
   id: string;
   sent: string;
   text: string;
+  sender: User;
   content: string;
   channel_id: string;
-  sender: {
-    id: string;
-    username: string;
-    profile_picture: string;
-    status: UserStatus;
-  };
-  reactions: { [emoji: string]: number };
+  reactions: { [key: string]: number };
   has_thread: boolean;
   has_image: boolean;
-  thread_id: string;
+  thread_id?: string;
   image?: string;
+  file_id?: string;
+  file_name?: string;
+  file_content_type?: string;
 }
 
 export interface PopulatedMessage extends Omit<Message, 'sender'> {
@@ -72,4 +70,37 @@ export interface UserResponse extends BaseResponse {
 
 export interface UserStatusResponse extends BaseResponse {
   user_status: UserStatus;
+}
+
+export interface SendMessageRequest {
+  channel_id: string;
+  user_id: string;
+  content: string;
+  file_id?: string;
+  file_name?: string;
+  file_content_type?: string;
+}
+
+
+/*
+class SearchResult(BaseModel):
+    channel_id: str
+    channel_name: str
+    message: Message
+    previous_message: Optional[Message] = None
+    next_message: Optional[Message] = None
+    score: float
+*/
+
+export interface SearchResultData {
+  channel_id: string;
+  channel_name: string;
+  message: Message;
+  previous_message: Message | null;
+  next_message: Message | null;
+  score: number;
+}
+
+export interface SearchResponse extends BaseResponse {
+  results: SearchResultData[];
 }

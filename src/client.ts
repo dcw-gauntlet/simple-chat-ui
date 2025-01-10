@@ -7,18 +7,15 @@ import {
   ChannelMembership,
   Message,
   UserResponse,
-  UserStatusResponse
+  UserStatusResponse,
+  SearchResultData,
+  SearchResponse,
+  BaseResponse
 } from './types';
 
 const API_URL = 'http://venus:8080';
 
 // ----- Server response types -----
-
-// Generic "Response" from the Python server
-export interface BaseResponse {
-  message: string;
-  ok: boolean;
-}
 
 // Response for the /login endpoint
 interface LoginResponse extends BaseResponse {
@@ -106,6 +103,9 @@ interface SendMessageRequest {
   channel_id: string;
   user_id: string;
   content: string;
+  file_id?: string;
+  filename?: string;
+  content_type?: string;
 }
 
 interface SendMessageResponse extends BaseResponse {
@@ -128,6 +128,25 @@ interface UserStatusCache {
   status: UserStatus;
   lastCheck: number;
 }
+
+// Add new response type
+interface FileUploadResponse extends BaseResponse {
+  file_id: string;
+}
+
+// Add new interface for file data
+interface FileData {
+  file_id: string;
+  filename: string;
+  content_type: string;
+}
+
+// Add new request/response types
+interface SearchRequest {
+  query: string;
+  userId: string;
+}
+
 
 export class ApiClient {
   private baseUrl: string;
@@ -242,26 +261,19 @@ export class ApiClient {
     }
   }
 
-  async sendMessage(data: SendMessageRequest): Promise<SendMessageResponse> {
-    try {
-      const response = await this.request<SendMessageResponse>('/send_message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          channel_id: data.channel_id,
-          user_id: data.user_id,
-          content: data.content
-        })
-      });
-      return response;
-    } catch (error) {
-      console.error('Send message error:', error);
-      return {
-        ok: false,
-        message: 'Failed to send message',
-        sent_message: null as any
-      };
-    }
+  async sendMessage(request: SendMessageRequest): Promise<SendMessageResponse> {
+    return this.request<SendMessageResponse>('/send_message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channel_id: request.channel_id,
+        user_id: request.user_id,
+        content: request.content,
+        file_id: request.file_id,
+        filename: request.filename,
+        content_type: request.content_type
+      })
+    });
   }
 
   async addReaction(data: ReactionRequest): Promise<BaseResponse> {
@@ -429,6 +441,61 @@ export class ApiClient {
       this.userStatusCache.clear();
     }
   }
+
+  async uploadFile(file: File): Promise<FileUploadResponse> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      return this.request<FileUploadResponse>('/upload_file', {
+        method: 'POST',
+        body: formData,
+        // Don't set Content-Type header - browser will set it with boundary
+      });
+    } catch (error) {
+      console.error('Upload file error:', error);
+      return {
+        ok: false,
+        message: 'Failed to upload file',
+        file_id: null as any
+      };
+    }
+  }
+
+  // Returns a URL that can be used to download the file
+  getFileDownloadUrl(fileId: string): string {
+    return `${this.baseUrl}/download_file/${fileId}`;
+  }
+
+  // Helper method to directly download a file
+  async downloadFile(fileId: string): Promise<Blob> {
+    const response = await fetch(this.getFileDownloadUrl(fileId));
+    if (!response.ok) {
+      throw new Error('Failed to download file');
+    }
+    return response.blob();
+  }
+
+  async searchMessages(request: SearchRequest): Promise<SearchResponse> {
+    try {
+      return this.request<SearchResponse>('/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          search_query: request.query,
+          user_id: request.userId
+        })
+      });
+    } catch (error) {
+      console.error('Search messages error:', error);
+      return {
+        ok: false,
+        message: 'Failed to search messages',
+        results: []
+      };
+    }
+  }
 }
+
 
 export const client = new ApiClient(API_URL);
