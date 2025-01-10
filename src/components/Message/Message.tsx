@@ -160,11 +160,13 @@ export const Message: React.FC<MessageProps> = ({
     }
   };
 
-  // Convert reactions object to array for rendering
+  // Update the reactionsList conversion to work with number counts
   const reactionsList = Object.entries(message.reactions || {}).map(([emoji, count]) => ({
     emoji,
-    count,
-    users: [] // We don't have users info in the current API response
+    count: count || 0,
+    // Since we don't have user IDs, we'll need to track reactions locally
+    // You might want to enhance the backend to track per-user reactions instead
+    hasReacted: false
   }));
 
   // Don't show interactive elements in search results
@@ -246,11 +248,22 @@ export const Message: React.FC<MessageProps> = ({
 
         <div className={styles.reactions}>
           {reactionsList.map(({emoji, count}) => (
-            <div key={emoji} className={styles.reaction}>
+            <div 
+              key={emoji} 
+              className={styles.reaction}
+              onClick={() => handleReactionSelect(emoji)}
+            >
               <span>{emoji}</span>
               <span>{count}</span>
             </div>
           ))}
+          <button 
+            className={styles.addReactionButton}
+            onClick={() => setShowReactionPicker(true)}
+            aria-label="Add reaction"
+          >
+            <span role="img" aria-label="add reaction">😀</span>
+          </button>
         </div>
 
         <div className={styles.threadSection}>

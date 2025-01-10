@@ -132,14 +132,31 @@
 }
 
 .reaction {
-  background-color: #f0f0f0;
-  padding: 2px 6px;
-  border-radius: 12px;
-  font-size: 12px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 20px;
+  padding: 2px 6px;
+  margin-right: 4px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  user-select: none;
+}
+
+.reaction span {
+  margin: 0 2px;
+}
+
+.reaction.hasReacted {
+  background: rgba(0, 120, 255, 0.1);
+  color: #0078ff;
+}
+
+.reaction:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.reaction.hasReacted:hover {
+  background: rgba(0, 120, 255, 0.2);
 }
 
 .ownMessage .reaction {
@@ -309,4 +326,18 @@
 
 .searchResult .messageContent {
   color: #333;
+}
+
+.addReactionButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0.7;
+}
+
+.addReactionButton:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.05);
 }
