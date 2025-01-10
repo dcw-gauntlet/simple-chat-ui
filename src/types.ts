@@ -69,3 +69,7 @@ export interface BaseResponse {
 export interface UserResponse extends BaseResponse {
   user: User;
 }
+
+export interface UserStatusResponse extends BaseResponse {
+  user_status: UserStatus;
+}

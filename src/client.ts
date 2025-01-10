@@ -6,7 +6,8 @@ import {
   Channel,
   ChannelMembership,
   Message,
-  UserResponse
+  UserResponse,
+  UserStatusResponse
 } from './types';
 
 const API_URL = 'http://venus:8080';
@@ -123,10 +124,17 @@ interface MyChannelsRequest {
   channel_type: ChannelType;
 }
 
+interface UserStatusCache {
+  status: UserStatus;
+  lastCheck: number;
+}
+
 export class ApiClient {
   private baseUrl: string;
   // optionally store the token if you want to authenticate future calls
   private token: string | null = null;
+  private userStatusCache: Map<string, UserStatusCache> = new Map();
+  private readonly STATUS_CACHE_TTL = 5000; // 5 seconds in milliseconds
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -377,6 +385,49 @@ export class ApiClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId })
     });
+  }
+
+  async getUserStatus(userId: string): Promise<UserStatus> {
+    const now = Date.now();
+    const cached = this.userStatusCache.get(userId);
+
+    // Return cached value if it's fresh
+    if (cached && (now - cached.lastCheck < this.STATUS_CACHE_TTL)) {
+      return cached.status;
+    }
+
+    // Otherwise fetch new status
+    try {
+      const response = await this.request<UserStatusResponse>('/user_status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_user_id: userId })
+      });
+
+      // Update cache
+      this.userStatusCache.set(userId, {
+        status: response.user_status,
+        lastCheck: now
+      });
+
+      return response.user_status;
+    } catch (error) {
+      console.error('Get user status error:', error);
+      // If we have a stale cache, better to return that than nothing
+      if (cached) {
+        return cached.status;
+      }
+      return UserStatus.OFFLINE; // Default fallback
+    }
+  }
+
+  // Optional: Add a method to clear the cache if needed
+  clearUserStatusCache(userId?: string) {
+    if (userId) {
+      this.userStatusCache.delete(userId);
+    } else {
+      this.userStatusCache.clear();
+    }
   }
 }
 

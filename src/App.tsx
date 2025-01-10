@@ -6,6 +6,7 @@ import { LoginForm } from './components/LoginForm/LoginForm';
 import { User, Channel, Message, ChannelType } from './types';
 import { ConversationPanel } from './components/ConversationPanel/ConversationPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
+import { UserPresence } from './UserPresence';
 
 interface LoggedInProps {
   user: User;
@@ -205,6 +206,16 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
       console.error('Failed to start DM:', error);
     }
   };
+
+  // Add UserPresence setup
+  useEffect(() => {
+    const presence = new UserPresence(user.id);
+    
+    // Cleanup on unmount
+    return () => {
+      presence.disconnect();
+    };
+  }, [user.id]); // Only re-run if user.id changes
 
   return (
     <div className="app-container">

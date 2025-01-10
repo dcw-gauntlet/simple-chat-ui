@@ -154,7 +154,7 @@ export const Message: React.FC<MessageProps> = ({
           <Avatar
             src={message.sender.profile_picture}
             username={message.sender.username}
-            status={message.sender.status}
+            userId={message.sender.id}
             size="medium"
             onClick={() => setShowUserPanel(true)}
           />
