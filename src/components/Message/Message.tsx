@@ -183,9 +183,9 @@ export const Message: React.FC<MessageProps> = ({
     whiteSpace: 'pre-wrap',
     overflowWrap: 'break-word',
     marginLeft: message.sender.id === currentUserId ? 'auto' : '0',
-    bgcolor: message.sender.id === currentUserId ? 'secondary.main' : 'primary.dark',
+    bgcolor: message.sender.id === currentUserId ? theme.palette.secondary.main : theme.palette.primary.main,
     '&:hover': {
-      bgcolor: message.sender.id === currentUserId ? 'secondary.dark' : '#004db3',
+      bgcolor: message.sender.id === currentUserId ? theme.palette.secondary.dark : theme.palette.primary.dark,
     }
   };
 
@@ -210,7 +210,7 @@ export const Message: React.FC<MessageProps> = ({
             <Typography
               variant="body1"
               sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: theme.palette.secondary.contrastText,
                 fontSize: '0.75rem',
                 marginTop: '10px',
                 cursor: 'pointer',
@@ -242,7 +242,7 @@ export const Message: React.FC<MessageProps> = ({
                 <Typography 
                     variant="body1"
                     sx={{
-                    color: 'rgba(255, 255, 255, 0.9)',
+                    color: theme.palette.secondary.contrastText,
                     fontSize: '0.8rem',
                     textAlign: 'left',
                     cursor: 'pointer',
@@ -255,7 +255,7 @@ export const Message: React.FC<MessageProps> = ({
                     variant="body1"
                     title={formatTimestamp(message.sent).relative}
                     sx={{
-                    color: 'rgba(255, 255, 255, 0.7)',
+                    color: theme.palette.secondary.contrastText,
                     fontSize: '0.75rem'
                     }}
                 >{formatTimestamp(message.sent).display}</Typography>
@@ -267,7 +267,7 @@ export const Message: React.FC<MessageProps> = ({
                 <Typography 
                     variant="body1"
                     sx={{
-                    color: 'rgba(255, 255, 255, 0.9)',
+                    color: 'rgba(255, 255, 255, 1)',
                     fontSize: '1.2rem'
                     }}
                 >{message.content}</Typography>

@@ -2,9 +2,10 @@ import React from 'react';
 import { Message as MessageComponent } from './../Message/Message';
 import { Channel, Message } from './../../types';
 import { ApiClient } from './../../client';
-import { Stack, TextField, Button } from '@mui/material';
+import { Stack, TextField, Button, Box, Typography } from '@mui/material';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { styled } from '@mui/material/styles';
+import Icon from '@mui/icons-material/icon';
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -19,7 +20,7 @@ const VisuallyHiddenInput = styled('input')({
 });
 
 interface ChatPanelProps {
-  channel: Channel;
+  channel: Channel | null;
   client: ApiClient;
   userId: string;
   onThreadCreate: (message: Message) => void;
@@ -43,8 +44,26 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   client,
   userId,
   onThreadOpen,
-  onStartDM
+  onStartDM,
 }) => {
+  // if we don't have a channel, we should show a "no channel" message
+  if (!channel || !channel.id) {
+    return <Stack sx={{ 
+        flexGrow: 1, 
+        display: 'flex', 
+        justifyContent: 'flex-start', 
+        alignItems: 'center',
+        p: 2,
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        borderTop: 1,
+        borderColor: 'divider',
+        width: '100%',
+      }}>
+      <Typography variant="h6">No channel selected</Typography>
+      <Typography variant="body1">Please select a channel to start chatting.</Typography>
+    </Stack>
+  }
+
   const [messages, setMessages] = React.useState<Message[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [needsScroll, setNeedsScroll] = React.useState(false);
@@ -57,11 +76,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const fetchMessages = async () => {
     const messagesResponse = await client.getChannelMessages(channel.id);
+    console.log("new messages count:", messagesResponse.messages.length);
     
     if (messagesResponse.messages.length > messages.length) {
       const newMessages = messagesResponse.messages.slice(messages.length);
       console.log("found new messages:", newMessages.length);
       setNeedsScroll(newMessages.length > 0);
+    } else {
+      console.log("no new messages");
     }
     setMessages(messagesResponse.messages);
   };
@@ -87,51 +109,52 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     return () => clearInterval(interval);
   }, [client, channel.id, messages.length]);
 
+  
+
   return (
-      <Stack
-          direction="column"
-          alignItems="flex-start"
-          justifyContent="flex-start"
-          spacing={2}
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'auto',
-          }}
-        >
-        <Stack
-          direction="column"
-          spacing={2}
-          alignItems="flex-start"
-          justifyContent="flex-start"
-          sx={{
-            width: '100%',
-            height: '100%',
-            overflow: 'auto',
-          }}
-        >
-          {isLoading && <div>Loading...</div>}
-          {messages.map((message) => (
-            <MessageComponent 
-              key={message.id}
-              message={message}
-              client={client}
-              currentUserId={userId}
-              onThreadOpen={onThreadOpen}
-              onStartDM={onStartDM}
-            />
-          ))}
-          <div ref={messagesEndRef} />
-        </Stack>
-        <Stack
-          direction="row"
-          spacing={2}
-          alignItems="flex-start"
-          justifyContent="flex-start"
-          sx={{
-            width: '100%',
-          }}
-        >
+    <Stack
+      direction="column"
+      sx={{
+        width: '100%',
+        height: '100vh',
+        position: 'relative',
+      }}
+    >
+      <Box
+        sx={{
+          flexGrow: 1,
+          overflow: 'auto',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          p: 2,
+        }}
+      >
+        {isLoading && <div>Loading...</div>}
+        {messages.map((message) => (
+          <MessageComponent 
+            key={message.id}
+            message={message}
+            client={client}
+            currentUserId={userId}
+            onThreadOpen={onThreadOpen}
+            onStartDM={onStartDM}
+          />
+        ))}
+        <div ref={messagesEndRef} />
+      </Box>
+      
+      <Box
+        sx={{
+          p: 2,
+          bgcolor: 'background.paper',
+          borderTop: 1,
+          borderColor: 'divider',
+          width: '100%',
+        }}
+      >
+        <Stack direction="row" spacing={1}>
           <TextField
             label="Message"
             variant="outlined"
@@ -193,6 +216,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             }}
           >Send</Button>
         </Stack>
-      </Stack>
+      </Box>
+    </Stack>
   );
 };

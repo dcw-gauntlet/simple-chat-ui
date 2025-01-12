@@ -1,7 +1,7 @@
 import React from 'react';
 import { Channel } from '../../types';
 import { ChannelDisplay } from '../ChannelDisplay/ChannelDisplay';
-import styles from './RecentChannels.module.css';
+import { Box, Typography, List, ListItem, Paper } from '@mui/material';
 
 interface RecentChannelsProps {
   title: string;
@@ -15,23 +15,58 @@ export const RecentChannels: React.FC<RecentChannelsProps> = ({
   onChannelSelect,
 }) => {
   return (
-    <div className={styles.container}>
-      <h3 className={styles.title}>{title}</h3>
+    <Box sx={{ width: '100%', p: 2 }}>
+      <Typography 
+        variant="h6" 
+        sx={{ 
+          mb: 2,
+          color: 'text.primary',
+          fontWeight: 'medium'
+        }}
+      >
+        {title}
+      </Typography>
+      
       {channels.length === 0 ? (
-        <div className={styles.empty}>No conversations yet</div>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: 'text.secondary',
+            fontStyle: 'italic',
+            pl: 2 
+          }}
+        >
+          No conversations yet
+        </Typography>
       ) : (
-        <ul className={styles.channelList}>
-          {channels.map((channel) => (
-            <li 
-              key={channel.id}
-              className={styles.channelItem}
-              onClick={() => onChannelSelect(channel)}
-            >
-              <ChannelDisplay channel={channel} />
-            </li>
-          ))}
-        </ul>
+        <Paper 
+          elevation={0}
+          sx={{ 
+            maxHeight: 360,
+            overflow: 'auto',
+            bgcolor: 'transparent'
+          }}
+        >
+          <List sx={{ p: 0 }}>
+            {channels.map((channel) => (
+              <ListItem
+                key={channel.id}
+                onClick={() => onChannelSelect(channel)}
+                sx={{
+                  p: 1,
+                  cursor: 'pointer',
+                  borderRadius: 1,
+                  '&:hover': {
+                    bgcolor: 'action.hover'
+                  }
+                }}
+              >
+                <ChannelDisplay channel={channel} />
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
       )}
-    </div>
+    </Box>
   );
 };

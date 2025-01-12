@@ -9,7 +9,10 @@ import { ChatPanel } from './components/ChatPanel/ChatPanel';
 import { UserPresence } from './UserPresence';
 import { SearchField } from './components/Search/SearchField';
 import { SearchPanel } from './components/Search/SearchPanel';
-
+import { Box, useTheme, useMediaQuery, IconButton, Button } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { theme } from './theme';
 interface LoggedInProps {
   user: User;
   onLogout: () => void;
@@ -22,6 +25,8 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResultData[]>([]);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleChannelSelect = (channel: Channel) => {
     setConversationStack([channel]);
@@ -69,13 +74,11 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
   // New helper function to handle opening a thread in the conversation stack
   const openThreadInStack = (threadChannel: Channel, fromPrimaryPanel: boolean = false) => {
     setConversationStack(prevStack => {
-      // If opening from primary panel, drop everything after primary and add new channel
-      if (fromPrimaryPanel) {
-        return [prevStack[0], threadChannel];
-      }
-      
-      // If opening from secondary panel, just add the new channel to the stack
-      return [...prevStack, threadChannel];
+      const newStack = fromPrimaryPanel ? 
+        [prevStack[0], threadChannel] : 
+        [...prevStack, threadChannel];
+      console.log('New stack:', newStack); // Debug log
+      return newStack;
     });
   };
 
@@ -119,11 +122,27 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
 
   const handleThreadOpen = (threadChannel: Channel, message: Message) => {
     console.log('Opening thread:', threadChannel, message);
-    // Check if this message is from the primary panel by comparing channel IDs
-    const fromPrimaryPanel = conversationStack.length > 0 && 
-      message.channel_id === conversationStack[0].id;
     
-    openThreadInStack(threadChannel, fromPrimaryPanel);
+    // Find the index of the primary panel's channel
+    const primaryIndex = conversationStack.findIndex(channel => 
+      channel.id === message.channel_id
+    );
+    
+    if (primaryIndex !== -1) {
+      // If message is from a channel in our stack
+      setConversationStack(prevStack => {
+        // Keep everything up to and including the primary channel, then add the new thread
+        const newStack = [
+          ...prevStack.slice(0, primaryIndex + 1),
+          threadChannel
+        ];
+        console.log('New stack:', newStack);
+        return newStack;
+      });
+    } else {
+      // If opening from somewhere else, add to the stack
+      setConversationStack(prevStack => [...prevStack, threadChannel]);
+    }
   };
 
   const handleStartDM = async (targetUserId: string, targetUsername?: string) => {
@@ -235,112 +254,139 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
     };
   }, [user.id]); // Only re-run if user.id changes
 
-  return (
-    <div className="app-container">
-      <div className="sidebar">
-        <div className="user-profile">
-          {user.profile_picture && (
-            <img 
-              src={user.profile_picture} 
-              alt="Profile" 
-              style={{ 
-                width: 50, 
-                height: 50, 
-                borderRadius: '50%',
-                objectFit: 'cover'
-              }} 
-            />
-          )}
-          <h3>{user.username}</h3>
-          <button onClick={onLogout}>Logout</button>
-        </div>
-        {isLoading ? (
-          <div className="loading">Loading conversations...</div>
-        ) : error ? (
-          <div className="error">{error}</div>
-        ) : (
-          <ConversationPanel
-            conversations={conversations}
-            onSelect={handleChannelSelect}
-            client={client}
-            onJoinSuccess={refreshConversations}
-            user={user}
-          />
-        )}
-      </div>
-      <div className="main-content">
-        <SearchField onSearch={handleSearch} />
+  const handleChatThreadCreate = async (message: Message) => {
+    try {
+      const messagePreview = (message.content || message.text || '')
+        .trim()
+        .substring(0, 30)
+        + ((message.content || message.text || '').length > 30 ? '...' : '');
+
+      const threadResponse = await client.createChannel({
+        name: `Thread: ${messagePreview}`,
+        channel_type: ChannelType.THREAD,
+        creator_id: user.id,
+        description: `Thread from message: ${message.id}`,
+        parent_channel_id: message.channel_id,
+        parent_message_id: message.id
+      });
+
+      if (threadResponse.ok && threadResponse.channel) {
+        // Join the channel immediately after creation
+        const joinResponse = await client.joinChannel({
+          username: user.username,
+          channel_name: threadResponse.channel.name
+        });
         
-        {searchQuery ? (
-          <SearchPanel 
-            searchResults={searchResults || []}
-            onResultClick={(channelId) => {
-              const channel = conversations.find(c => c.id === channelId);
-              if (channel) {
-                handleChannelSelect(channel);
-                setSearchQuery(''); // Clear search when selecting a channel
-                setSearchResults([]);
+        if (joinResponse.ok) {
+          // Add the new thread to the conversation stack
+          setConversationStack(prevStack => [prevStack[0], threadResponse.channel]);
+        } else {
+          console.error('Failed to join thread:', joinResponse.message);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to create or join thread:', error);
+    }
+  };
+
+  // Get the last two channels from the stack for display
+  const displayChannels = conversationStack.slice(-2);
+  
+  return (
+    <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+      <ConversationPanel
+        conversations={conversations}
+        onSelect={handleChannelSelect}
+        client={client}
+        onJoinSuccess={refreshConversations}
+        user={user}
+        onLogout={onLogout}
+      />
+      
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'row',
+          width: 'calc(100% - 320px)',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Primary Panel */}
+        <Box 
+          sx={{
+            flex: 1,
+            borderLeft: 1,
+            borderColor: 'divider'
+          }}
+        >
+          <ChatPanel
+            channel={displayChannels[0] || null}
+            client={client}
+            userId={user.id}
+            onThreadCreate={handleChatThreadCreate}
+            onThreadOpen={handleThreadOpen}
+            onStartDM={handleStartDM}
+          />
+        </Box>
+
+        {/* Secondary Panel */}
+        {displayChannels.length > 1 && (
+          <Box 
+            sx={{
+              flex: 1,
+              borderLeft: 1,
+              borderColor: 'divider'
+            }}
+          >
+            <ChatPanel
+              channel={displayChannels[1]}
+              client={client}
+              userId={user.id}
+              onThreadCreate={handleChatThreadCreate}
+              onThreadOpen={handleThreadOpen}
+              onStartDM={handleStartDM}
+            />
+          </Box>
+        )}
+
+        {/* Shift Button Column */}
+        {displayChannels.length > 1 && (
+          <Box 
+            sx={{
+              width: '48px',
+              borderLeft: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: theme.palette.background.paper,
+              pt: 2,
+              height: '100%',
+              cursor: 'pointer',
+              '&:hover': {
+                bgcolor: theme.palette.action.hover
               }
             }}
-          />
-        ) : (
-          conversationStack.length > 0 ? (
-            <>
-              <div className="chat-panel-container">
-                <ChatPanel
-                  channel={conversationStack.length > 1 
-                    ? conversationStack[conversationStack.length - 2] 
-                    : conversationStack[0]}
-                  client={client}
-                  onThreadOpen={handleThreadOpen}
-                  userId={user.id}
-                  onThreadCreate={(message: Message) => handleThreadCreate(
-                    conversationStack.length > 1 
-                      ? conversationStack[conversationStack.length - 2]
-                      : conversationStack[0],
-                    message
-                  )}
-                  onStartDM={handleStartDM}
-                />
-              </div>
-              
-              {conversationStack.length > 1 && (
-                <div className="chat-panel-container">
-                  <ChatPanel
-                    // For secondary panel, show the last channel in stack
-                    channel={conversationStack[conversationStack.length - 1]}
-                    client={client}
-                    userId={user.id}
-                    onThreadCreate={(message) => handleThreadCreate(
-                      conversationStack[conversationStack.length - 1],
-                      message
-                    )}
-                    onThreadOpen={(threadChannel, message) => 
-                      handleThreadOpen(threadChannel, message)}
-                    onStartDM={handleStartDM}
-                  />
-                </div>
-              )}
-
-              {conversationStack.length > 1 && (
-                <button 
-                  className="shift-button"
-                  onClick={handleShiftConversations}
-                >
-                  Shift Conversations
-                </button>
-              )}
-            </>
-          ) : (
-            <div className="chat-panel-container">
-              <div className="placeholder-message">
-                Select a conversation to begin chatting
-              </div>
-            </div>
-          )
+            onClick={handleShiftConversations}
+          >
+            <IconButton
+              size="small"
+              title="Shift conversations"
+              sx={{
+                '&:hover': {
+                  bgcolor: theme.palette.action.hover
+                }
+              }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+          </Box>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 
@@ -365,11 +411,12 @@ export default function App() {
     localStorage.removeItem('username');
     localStorage.removeItem('password');
     
+    // Clear all application state
     setLoggedIn(false);
     setUser(null);
-    setUsername('');  // Clear the state variables too
+    setUsername('');
     setPassword('');
-  }
+  };
 
   React.useEffect(() => {
     const loginResponse = client.login({
