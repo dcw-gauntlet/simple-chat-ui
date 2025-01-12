@@ -58,7 +58,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ client, onLoginSuccess }) 
             setError('Registration successful but login failed. Please try logging in.');
           }
         } else {
-          setError(registerResponse.message || 'Registration failed. Please try again.');
+          setError('Registration failed. Please try again.');
         }
       } else {
         // Handle login (unchanged)

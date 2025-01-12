@@ -1,8 +1,22 @@
 import React from 'react';
-import styles from './ChatPanel.module.css';
 import { Message as MessageComponent } from './../Message/Message';
 import { Channel, Message } from './../../types';
 import { ApiClient } from './../../client';
+import { Stack, TextField, Button } from '@mui/material';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import { styled } from '@mui/material/styles';
+
+const VisuallyHiddenInput = styled('input')({
+  clip: 'rect(0 0 0 0)',
+  clipPath: 'inset(50%)',
+  height: 1,
+  overflow: 'hidden',
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  whiteSpace: 'nowrap',
+  width: 1,
+});
 
 interface ChatPanelProps {
   channel: Channel;
@@ -13,218 +27,172 @@ interface ChatPanelProps {
   onStartDM: (userId: string, username?: string) => void;
 }
 
+const sendMessage = (client: ApiClient, channelId: string, userId: string, message: string, file_id?: string, filename?: string, content_type?: string) => {
+  client.sendMessage({
+    channel_id: channelId, 
+    user_id: userId,
+    content: message,
+    file_id: file_id,
+    filename: filename,
+    content_type: content_type
+  });
+}
+
 export const ChatPanel: React.FC<ChatPanelProps> = ({ 
   channel, 
   client,
   userId,
-  onThreadCreate,
   onThreadOpen,
   onStartDM
 }) => {
   const [messages, setMessages] = React.useState<Message[]>([]);
-  const [newMessage, setNewMessage] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [needsScroll, setNeedsScroll] = React.useState(false);
+  const [message, setMessage] = React.useState('');
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Scroll to bottom whenever messages change or when the channel changes
-  React.useEffect(() => {
-    scrollToBottom();
-  }, [messages, channel?.id]);
-
-  // Load and poll messages
-  React.useEffect(() => {
-    if (!channel) return;
-
-    const fetchMessages = async () => {
-      try {
-        const response = await client.getChannelMessages(channel.id);
-        if (response.ok) {
-          setMessages(response.messages);
-          setError('');
-          scrollToBottom();
-        } else {
-          setError('Failed to load messages');
-        }
-      } catch (err) {
-        setError('Unable to load messages');
-      }
-    };
-
-    // Initial fetch
-    fetchMessages();
-
-    // Set up polling
-    const intervalId = setInterval(fetchMessages, 3000);
-
-    // Cleanup
-    return () => {
-      clearInterval(intervalId);
-      setMessages([]);
-      setError('');
-    };
-  }, [channel, client]);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!channel || (!newMessage.trim() && !selectedFile) || isLoading) return;
-
-    setIsLoading(true);
-    setError('');
-
-    try {
-      let fileId: string | undefined;
-      
-      // Upload file first if one is selected
-      if (selectedFile) {
-        const uploadResponse = await client.uploadFile(selectedFile);
-        if (!uploadResponse.ok) {
-          setError('Failed to upload file');
-          setIsLoading(false);
-          return;
-        }
-        fileId = uploadResponse.file_id;
-      }
-
-      const response = await client.sendMessage({
-        channel_id: channel.id,
-        user_id: userId,
-        content: newMessage.trim(),
-        file_id: fileId,
-        filename: fileId ? selectedFile!.name : undefined,
-        content_type: fileId ? selectedFile!.type : undefined
-      });
-
-      if (response.ok) {
-        setNewMessage('');
-        setSelectedFile(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-        
-        // Immediately fetch new messages
-        const messagesResponse = await client.getChannelMessages(channel.id);
-        if (messagesResponse.ok) {
-          setMessages(messagesResponse.messages);
-          scrollToBottom();
-        }
-      } else {
-        setError('Failed to send message');
-      }
-    } catch (err) {
-      setError('Unable to send message');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleReactionUpdate = async () => {
-    if (!channel) return;
+  const fetchMessages = async () => {
+    const messagesResponse = await client.getChannelMessages(channel.id);
     
-    try {
-      const response = await client.getChannelMessages(channel.id);
-      if (response.ok) {
-        setMessages(response.messages);
-      }
-    } catch (err) {
-      console.error('Error refreshing messages:', err);
+    if (messagesResponse.messages.length > messages.length) {
+      const newMessages = messagesResponse.messages.slice(messages.length);
+      console.log("found new messages:", newMessages.length);
+      setNeedsScroll(newMessages.length > 0);
     }
+    setMessages(messagesResponse.messages);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
+  React.useEffect(() => {
+    if (needsScroll) {
+      scrollToBottom();
+      setNeedsScroll(false);
     }
-  };
+  }, [needsScroll]);
 
-  const clearSelectedFile = () => {
-    setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+  React.useEffect(() => {
+    setMessages([]);
+    setIsLoading(true);
+    fetchMessages().finally(() => setIsLoading(false));
+  }, [channel.id]);
 
-  if (!channel) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.placeholder}>
-          Select a conversation to start chatting
-        </div>
-      </div>
-    );
-  }
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      fetchMessages();
+    }, 1_000);
+
+    return () => clearInterval(interval);
+  }, [client, channel.id, messages.length]);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.metadata}>
-          <h2 className={styles.title}>{channel.name}</h2>
-          <div className={styles.details}>
-            <span>Created: {new Date(channel.created_at).toLocaleDateString()}</span>
-          </div>
-        </div>
-      </div>
-      <div className={styles.messageList}>
-        {messages.map((message) => (
-          <MessageComponent
-            key={message.id}
-            message={message}
-            currentUserId={userId}
-            client={client}
-            onThreadCreate={() => onThreadCreate(message)}
-            onThreadOpen={(threadChannel) => onThreadOpen(threadChannel, message)}
-            onReactionUpdate={handleReactionUpdate}
-            onStartDM={(userId: string) => onStartDM(userId)}
-          />
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-      {error && <div className={styles.error}>{error}</div>}
-      <form onSubmit={handleSendMessage} className={styles.messageForm}>
-        <div className={styles.inputContainer}>
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            disabled={isLoading}
-          />
-          <input
-            ref={fileInputRef}
-            type="file"
-            onChange={handleFileSelect}
-            className={styles.fileInput}
-            disabled={isLoading}
-          />
-        </div>
-        {selectedFile && (
-          <div className={styles.selectedFile}>
-            <span>{selectedFile.name}</span>
-            <button
-              type="button"
-              onClick={clearSelectedFile}
-              className={styles.clearFile}
-            >
-              ✕
-            </button>
-          </div>
-        )}
-        <button 
-          type="submit" 
-          disabled={isLoading || (!newMessage.trim() && !selectedFile)}
+      <Stack
+          direction="column"
+          alignItems="flex-start"
+          justifyContent="flex-start"
+          spacing={2}
+          sx={{
+            width: '100%',
+            height: '100%',
+            overflow: 'auto',
+          }}
         >
-          {isLoading ? 'Sending...' : 'Send'}
-        </button>
-      </form>
-    </div>
+        <Stack
+          direction="column"
+          spacing={2}
+          alignItems="flex-start"
+          justifyContent="flex-start"
+          sx={{
+            width: '100%',
+            height: '100%',
+            overflow: 'auto',
+          }}
+        >
+          {isLoading && <div>Loading...</div>}
+          {messages.map((message) => (
+            <MessageComponent 
+              key={message.id}
+              message={message}
+              client={client}
+              currentUserId={userId}
+              onThreadOpen={onThreadOpen}
+              onStartDM={onStartDM}
+            />
+          ))}
+          <div ref={messagesEndRef} />
+        </Stack>
+        <Stack
+          direction="row"
+          spacing={2}
+          alignItems="flex-start"
+          justifyContent="flex-start"
+          sx={{
+            width: '100%',
+          }}
+        >
+          <TextField
+            label="Message"
+            variant="outlined"
+            fullWidth
+            multiline
+            rows={2}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(client, channel.id, userId, message);
+                setMessage('');
+              }
+            }}
+          />
+          <Button
+            component="label"
+            role={undefined}
+            variant="contained"
+            tabIndex={-1}
+            startIcon={<AttachFileIcon />}
+            sx={{
+              "height": "100%",
+            }}
+          >
+            Attach
+            <VisuallyHiddenInput
+              type="file"
+              multiple
+              onChange={async (event) => {
+                if (event.target.files && event.target.files.length > 0) {
+                  const file = event.target.files[0];
+                  try {
+                    const response = await client.uploadFile(file);
+                    if (response.ok) {
+                      // Send message with file attachment
+                      await sendMessage(client, channel.id, userId, message, response.file_id, file.name, file.type);
+                      setMessage('');
+                    }
+                  } catch (error) {
+                    console.error('Error uploading file:', error);
+                  }
+                }
+              }}
+            />
+          </Button>
+          <Button
+            variant="contained"
+            disabled={message.length === 0}
+            sx={{
+              backgroundColor: 'green',
+              color: 'white',
+              height: '100%',
+            }}
+            onClick={() => {
+              sendMessage(client, channel.id, userId, message);
+              setMessage('');
+            }}
+          >Send</Button>
+        </Stack>
+      </Stack>
   );
 };

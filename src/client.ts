@@ -8,7 +8,6 @@ import {
   Message,
   UserResponse,
   UserStatusResponse,
-  SearchResultData,
   SearchResponse,
   BaseResponse
 } from './types';
@@ -118,12 +117,6 @@ interface ReactionRequest {
   user_id: string;
 }
 
-// Update the request type
-interface MyChannelsRequest {
-  user_id: string;
-  channel_type: ChannelType;
-}
-
 interface UserStatusCache {
   status: UserStatus;
   lastCheck: number;
@@ -132,13 +125,6 @@ interface UserStatusCache {
 // Add new response type
 interface FileUploadResponse extends BaseResponse {
   file_id: string;
-}
-
-// Add new interface for file data
-interface FileData {
-  file_id: string;
-  filename: string;
-  content_type: string;
 }
 
 // Add new request/response types
@@ -154,9 +140,12 @@ export class ApiClient {
   private token: string | null = null;
   private userStatusCache: Map<string, UserStatusCache> = new Map();
   private readonly STATUS_CACHE_TTL = 5000; // 5 seconds in milliseconds
+  // Add new property for pending requests
+  private pendingStatusRequests: Map<string, Promise<UserStatus>> = new Map();
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
+    console.log(this.token);
   }
 
   // ----- Helper method for all fetch calls -----
@@ -376,10 +365,6 @@ export class ApiClient {
           channel_type: ChannelType.DM
         })
       });
-      console.log('getDMChannels request:', {
-        user_id: userId,
-        channel_type: ChannelType.DM
-      });
       return response;
     } catch (error) {
       console.error('Get DM channels error:', error);
@@ -408,37 +393,53 @@ export class ApiClient {
       return cached.status;
     }
 
-    // Otherwise fetch new status
-    try {
-      const response = await this.request<UserStatusResponse>('/user_status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request_user_id: userId })
-      });
-
-      // Update cache
-      this.userStatusCache.set(userId, {
-        status: response.user_status,
-        lastCheck: now
-      });
-
-      return response.user_status;
-    } catch (error) {
-      console.error('Get user status error:', error);
-      // If we have a stale cache, better to return that than nothing
-      if (cached) {
-        return cached.status;
-      }
-      return UserStatus.OFFLINE; // Default fallback
+    // Check if there's already a pending request for this user
+    const pendingRequest = this.pendingStatusRequests.get(userId);
+    if (pendingRequest) {
+      return pendingRequest;
     }
+
+    // Create new request and store it
+    const statusPromise = (async () => {
+      try {
+        const response = await this.request<UserStatusResponse>('/user_status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ request_user_id: userId })
+        });
+
+        // Update cache
+        this.userStatusCache.set(userId, {
+          status: response.user_status,
+          lastCheck: now
+        });
+
+        return response.user_status;
+      } catch (error) {
+        console.error('Get user status error:', error);
+        if (cached) {
+          return cached.status;
+        }
+        return UserStatus.OFFLINE;
+      } finally {
+        // Clean up pending request
+        this.pendingStatusRequests.delete(userId);
+      }
+    })();
+
+    // Store the pending request
+    this.pendingStatusRequests.set(userId, statusPromise);
+    return statusPromise;
   }
 
-  // Optional: Add a method to clear the cache if needed
+  // Update clear cache method to also clear pending requests
   clearUserStatusCache(userId?: string) {
     if (userId) {
       this.userStatusCache.delete(userId);
+      this.pendingStatusRequests.delete(userId);
     } else {
       this.userStatusCache.clear();
+      this.pendingStatusRequests.clear();
     }
   }
 

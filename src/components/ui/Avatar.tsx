@@ -1,21 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { client } from '../../client';
-import { UserStatus } from '../../types';
+import { UserStatus, User } from '../../types';
 import styles from './Avatar.module.css';
 
 interface AvatarProps {
-  src?: string;
-  username: string;
-  userId: string;
-  size?: 'small' | 'medium' | 'large';
+  user: User;
+  size?: 'small' | 'medium' | 'large' | 'xl';
   className?: string;
   onClick?: () => void;
 }
 
 export const Avatar: React.FC<AvatarProps> = ({
-  src,
-  username,
-  userId,
+  user,
   size = 'medium',
   className = '',
   onClick,
@@ -25,7 +21,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const userStatus = await client.getUserStatus(userId);
+        const userStatus = await client.getUserStatus(user.id);
         setStatus(userStatus);
       } catch (error) {
         console.error('Failed to fetch user status:', error);
@@ -38,7 +34,7 @@ export const Avatar: React.FC<AvatarProps> = ({
     const interval = setInterval(fetchStatus, 5000);
 
     return () => clearInterval(interval);
-  }, [userId]);
+  }, [user.id]);
 
   const getStatusColor = (status?: string) => {
     switch (status) {
@@ -84,18 +80,18 @@ export const Avatar: React.FC<AvatarProps> = ({
       className={containerClasses}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
-      title={status ? `${username} - ${getStatusText(status)}` : username}
+      title={status ? `${user.username} - ${getStatusText(status)}` : user.username}
     >
       <div className={styles['image-container']}>
-        {src ? (
+        {user.profile_picture ? (
           <img
-            src={src}
-            alt={username}
+            src={user.profile_picture}
+            alt={user.username}
             className={styles['avatar-image']}
           />
         ) : (
           <div className={styles['avatar-fallback']}>
-            {username.charAt(0).toUpperCase()}
+            {user.username.charAt(0).toUpperCase()}
           </div>
         )}
       </div>

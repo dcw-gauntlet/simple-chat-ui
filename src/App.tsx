@@ -35,11 +35,6 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
     });
   };
 
-  const pollMessages = async (channelId: string): Promise<Message[]> => {
-    // TODO: Implement message polling
-    return [];
-  };
-
   const refreshConversations = async () => {
     try {
       // Get both regular conversations and DMs
@@ -48,15 +43,12 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
         client.getDMChannels(user.id)
       ]);
 
-      console.log('Polling - DMs response:', dmsResponse);
-      console.log('Polling - Conversations response:', conversationsResponse);
-
+      
       if (conversationsResponse.ok && dmsResponse.ok) {
         const allChannels = [
           ...conversationsResponse.channels,
           ...dmsResponse.channels
         ];
-        console.log('Polling - Combined channels:', allChannels);
         setConversations(allChannels);
         setError('');
       } else {
@@ -358,7 +350,6 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
 export default function App() {
   const [username, setUsername] = useState(localStorage.getItem('username') || '');
   const [password, setPassword] = useState(localStorage.getItem('password') || '');
-  const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [loggedIn, setLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   
@@ -394,6 +385,8 @@ export default function App() {
       }
     });
   }, []);
+
+  console.log(user, loggedIn);
   
   return (
     <div className="app-container">

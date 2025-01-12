@@ -50,7 +50,6 @@ export const SearchResult: React.FC<SearchResultProps> = ({
           <div className="search-result__context-message">
             <MessageComponent
               message={previous_message}
-              onThreadCreate={noopHandler}
               onThreadOpen={noopHandler}
               currentUserId=""
               onStartDM={noopHandler}
@@ -63,7 +62,6 @@ export const SearchResult: React.FC<SearchResultProps> = ({
         <div className="search-result__matched-message">
           <MessageComponent
             message={message}
-            onThreadCreate={noopHandler}
             onThreadOpen={noopHandler}
             currentUserId=""
             onStartDM={noopHandler}
@@ -76,7 +74,6 @@ export const SearchResult: React.FC<SearchResultProps> = ({
           <div className="search-result__context-message">
             <MessageComponent
               message={next_message}
-              onThreadCreate={noopHandler}
               onThreadOpen={noopHandler}
               currentUserId=""
               onStartDM={noopHandler}

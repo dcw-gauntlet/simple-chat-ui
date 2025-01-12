@@ -43,10 +43,23 @@
   height: 58px;
 }
 
+.xl {
+  width: 96px;   /* or your preferred xl size */
+  height: 96px;
+}
+
+/* Adjust status indicator size for xl if needed */
+.xl .status-indicator {
+  width: 16px;
+  height: 16px;
+  border-width: 3px;
+}
+
 .image-container {
   position: relative;
   width: 100%;
   height: 100%;
+  border-radius: 50%;
 }
 
 .avatar-image {
@@ -56,6 +69,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .avatar-fallback {

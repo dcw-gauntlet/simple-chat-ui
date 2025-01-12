@@ -59,7 +59,6 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
 }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchResults, setSearchResults] = useState<Channel[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

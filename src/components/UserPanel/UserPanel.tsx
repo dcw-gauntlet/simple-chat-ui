@@ -1,61 +1,95 @@
 import React from 'react';
-import { Modal } from '../ui/Modal';
 import { Avatar } from '../ui/Avatar';
-import styles from './UserPanel.module.css';
-import { UserStatus } from '../../types';
+import { User } from '../../types';
+import { Dialog } from '@mui/material';
+import { Slide } from '@mui/material';
+import { TransitionProps } from '@mui/material/transitions';
+import { Container, Typography, Button } from '@mui/material';
+import { Grid2 } from '@mui/material';
 
 interface UserPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  avatarUrl?: string;
-  username: string;
-  status: UserStatus;
-  userId: string;
+  user: User;
   onStartDM: (userId: string) => void;
 }
+
+const Transition = React.forwardRef(function Transition(
+  props: TransitionProps & {
+    children: React.ReactElement<any, any>;
+  },
+  ref: React.Ref<unknown>,
+) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
 
 export const UserPanel: React.FC<UserPanelProps> = ({
   isOpen,
   onClose,
-  avatarUrl,
-  username,
-  status,
-  userId,
+  user,
   onStartDM
 }) => {
   const handleDMClick = () => {
-    onStartDM(userId);
+    onStartDM(user.id);
     onClose();
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <div className={styles['user-panel']}>
-        <div className={styles['user-panel-header']}>
-          <Avatar 
-            src={avatarUrl}
-            username={username}
-            size="large"
-            status={status}
-          />
-          <div className={styles['user-panel-info']}>
-            <h2 className={styles['username']}>{username}</h2>
-            <span className={styles['status']}>
-              {status.replace(/_/g, ' ')}
-            </span>
-          </div>
-        </div>
-        
-        <div className={styles['user-panel-actions']}>
-          <button 
-            className={styles['dm-button']}
-            onClick={handleDMClick}
+    <Dialog 
+      open={isOpen} 
+      onClose={onClose}
+      TransitionComponent={Transition}
+      maxWidth={false}
+      sx={{
+        '& .MuiDialog-paper': {
+          maxWidth: '80vw',
+          minWidth: '30vw',
+          margin: '16px',
+        },
+      }}
+    >
+      <Container
+        sx={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'white',
+          borderRadius: '10px',
+          padding: '20px',
+        }}
+      >
+        <Typography variant="h6">User Panel</Typography>
+        <Grid2 container spacing={2}>
+          <Grid2 
+            size={4}
+            sx={{
+              display: 'flex',
+              justifyContent: 'left',
+              alignItems: 'center',
+            }}
           >
-            Send Direct Message
-          </button>
-        </div>
-      </div>
-    </Modal>
+            <Avatar 
+              user={user}
+              size="xl"
+            />
+          </Grid2>
+          <Grid2>
+            <Grid2 container >
+              <Grid2 size={4}>
+                <Typography variant="h6">{user.username}</Typography>
+              </Grid2>
+              <Grid2 size={8} />
+              <Grid2 size={12}>
+                <Button variant="contained" onClick={handleDMClick}>Direct Message</Button>
+              </Grid2>
+            </Grid2>
+          </Grid2>
+        </Grid2>
+        
+        
+        
+        
+      </Container>
+    </Dialog>
   );
 };
 
