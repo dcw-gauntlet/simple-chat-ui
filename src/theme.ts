@@ -9,17 +9,17 @@ export const theme = createTheme({
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#FF4081',
+      main: 'rgba(255, 64, 129, 0.7)',
       dark: '#C60055',
       light: '#FF79B0',
-      contrastText: '#ffffff',
+      contrastText: 'rgba(255, 255, 255, 1)',
     },
     background: {
       default: '#ffffff',
       paper: '#f5f5f5',
     },
     text: {
-      primary: '#1A1A1A',
+      primary: 'rgba(255, 255, 255, 1)',
       secondary: '#666666',
     },
     action: {

@@ -20,6 +20,9 @@ import { ChannelDisplay } from '../ChannelDisplay/ChannelDisplay';
 import { User } from '../../types';
 import { AccountDisplay } from '../AccountDisplay/AccountDisplay';
 import { theme } from '../../theme';
+import { SearchResultData } from '../../types';
+import { MessageSearch } from './MessageSearch';
+
 interface ConversationPanelProps {
   conversations: Channel[];
   onSelect: (channel: Channel) => void;
@@ -27,6 +30,7 @@ interface ConversationPanelProps {
   user: User;
   onJoinSuccess: () => void;
   onLogout: () => void;
+  onChannelSelect: (channelOrId: Channel | string) => void;
 }
 
 // SearchResults component with Material UI
@@ -34,9 +38,11 @@ const SearchResults: React.FC<{
   isLoading: boolean;
   searchQuery: string;
   searchResults: Channel[];
+  messageResults: SearchResultData[];
   onJoinChannel: (name: string) => void;
+  onMessageSelect: (channelId: string) => void;
   error: string;
-}> = ({ isLoading, searchQuery, searchResults, onJoinChannel, error }) => {
+}> = ({ isLoading, searchQuery, searchResults, messageResults, onJoinChannel, onMessageSelect, error }) => {
   return (
     <Box sx={{ width: '100%', mt: 2 }}>
       {error && (
@@ -45,30 +51,94 @@ const SearchResults: React.FC<{
         </Typography>
       )}
       
-      <Stack spacing={1}>
-        {searchResults.map((channel) => (
-          <Box
-            key={channel.id}
-            onClick={() => onJoinChannel(channel.name)}
-            sx={{ cursor: 'pointer' }}
-          >
-            <ChannelDisplay channel={channel} />
-          </Box>
-        ))}
-      </Stack>
+      {/* Channel Results */}
+      {searchResults.length > 0 && (
+        <>
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>Channels</Typography>
+          <Stack spacing={1} sx={{ mb: 2 }}>
+            {searchResults.map((channel) => (
+              <Box
+                key={channel.id}
+                onClick={() => onJoinChannel(channel.name)}
+                sx={{ cursor: 'pointer' }}
+              >
+                <ChannelDisplay channel={channel} />
+              </Box>
+            ))}
+          </Stack>
+        </>
+      )}
+
+      {/* Message Results */}
+      {messageResults.length > 0 && (
+        <>
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>Messages</Typography>
+          <Stack spacing={1}>
+            {messageResults.map((result) => (
+              <Paper 
+                key={result.message.id}
+                onClick={() => onMessageSelect(result.channel_id)}
+                sx={{ 
+                  p: 2, 
+                  cursor: 'pointer',
+                  '&:hover': {
+                    bgcolor: 'action.hover'
+                  }
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  {result.channel_name}
+                </Typography>
+                
+                {result.previous_message && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {result.previous_message.content}
+                  </Typography>
+                )}
+                
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    bgcolor: 'action.selected',
+                    p: 1,
+                    borderRadius: 1,
+                    mb: 1
+                  }}
+                >
+                  {result.message.content}
+                </Typography>
+                
+                {result.next_message && (
+                  <Typography variant="body2" color="text.secondary">
+                    {result.next_message.content}
+                  </Typography>
+                )}
+              </Paper>
+            ))}
+          </Stack>
+        </>
+      )}
       
+      {/* Loading and No Results States */}
       {isLoading && (
         <Typography sx={{ mt: 2, color: theme.palette.text.secondary }}>
           Searching...
         </Typography>
       )}
-      {!isLoading && searchQuery && searchResults.length === 0 && (
+      {!isLoading && searchQuery && searchResults.length === 0 && messageResults.length === 0 && (
         <Typography sx={{ mt: 2, color: theme.palette.text.secondary }}>
-          No conversations found
+          No results found
         </Typography>
       )}
     </Box>
   );
+};
+
+const MessagesSearchBar: React.FC<{
+  searchQuery: string;
+  onSearch: (query: string) => void;
+}> = ({ searchQuery, onSearch }) => {
+  return <TextField placeholder="Search messages..." value={searchQuery} onChange={(e) => onSearch(e.target.value)} />;
 };
 
 export const ConversationPanel: React.FC<ConversationPanelProps> = ({
@@ -77,7 +147,8 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
   client,
   user,
   onJoinSuccess,
-  onLogout
+  onLogout,
+  onChannelSelect
 }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -89,6 +160,8 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
   const [newChannelDescription, setNewChannelDescription] = useState('');
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [joinError, setJoinError] = useState('');
+  const [messageResults, setMessageResults] = useState<SearchResultData[]>([]);
+  const [conversationFilter, setConversationFilter] = useState('');
 
   useEffect(() => {
     if (!showSearchModal) return;
@@ -101,22 +174,31 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
       const timeout = setTimeout(async () => {
         setIsLoading(true);
         try {
-          const response = await client.searchChannels(searchQuery);
-          if (response.ok) {
-            setSearchResults(response.channels);
-          } else {
-            setError(response.message || 'Failed to search conversations');
+          const [channelsResponse, messagesResponse] = await Promise.all([
+            client.searchChannels(searchQuery),
+            client.searchMessages({ query: searchQuery, userId: user.id })
+          ]);
+
+          if (channelsResponse.ok) {
+            setSearchResults(channelsResponse.channels);
+          }
+          if (messagesResponse.ok) {
+            setMessageResults(messagesResponse.results);
+          }
+          if (!channelsResponse.ok || !messagesResponse.ok) {
+            setError('Failed to search');
           }
         } catch (err) {
-          setError('Unable to search conversations');
+          setError('Unable to search');
         } finally {
           setIsLoading(false);
         }
-      }, 300); // 300ms delay
+      }, 300);
 
       setSearchTimeout(timeout);
     } else {
-      setSearchResults([]); // Clear results if search is empty
+      setSearchResults([]);
+      setMessageResults([]);
     }
 
     return () => {
@@ -230,6 +312,27 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
     channel => channel.channel_type === ChannelType.DM
   );
 
+  // Filter the conversations based on the search term
+  const filteredRegularConversations = regularConversations.filter(
+    channel => channel.name.toLowerCase().includes(conversationFilter.toLowerCase())
+  );
+  
+  const filteredDmConversations = dmConversations.filter(
+    channel => channel.name.toLowerCase().includes(conversationFilter.toLowerCase())
+  );
+
+  // Add handler for message selection
+  const handleMessageSelect = (channelId: string) => {
+    const channel = conversations.find(c => c.id === channelId);
+    if (channel) {
+      onSelect(channel);
+      setShowSearchModal(false);
+      setSearchQuery('');
+      setSearchResults([]);
+      setMessageResults([]);
+    }
+  };
+
   return (
     <Paper 
       elevation={0}
@@ -244,20 +347,26 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
       }}
     >
       <AccountDisplay user={user} onLogout={onLogout} />
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: theme.palette.divider }}>
+      <MessageSearch 
+        client={client} 
+        onChannelSelect={onChannelSelect}
+        userId={user.id}
+      />
+        
+        {/* Conversations header and create/search buttons */}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center',
           justifyContent: 'space-between',
-          mb: 2
+          mt: 2,
+          mb: 1
         }}>
           <Typography variant="h6">Conversations</Typography>
           <Box>
-            <IconButton 
+            <IconButton
               onClick={() => setShowSearchModal(true)}
               color="primary"
               size="small"
-              sx={{ mr: 1 }}
             >
               <SearchIcon />
             </IconButton>
@@ -265,13 +374,11 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
               onClick={() => setShowCreateModal(true)}
               color="primary"
               size="small"
-              sx={{ mr: 1 }}
             >
               <AddIcon />
             </IconButton>
           </Box>
         </Box>
-      </Box>
 
       {error && (
         <Typography color="error" sx={{ p: 2 }}>
@@ -282,14 +389,14 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
       <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
         <RecentChannels
           title="Recent Conversations"
-          channels={regularConversations}
+          channels={filteredRegularConversations}
           onChannelSelect={onSelect}
         />
 
-        {dmConversations.length > 0 && (
+        {filteredDmConversations.length > 0 && (
           <RecentChannels
             title="Direct Messages"
-            channels={dmConversations}
+            channels={filteredDmConversations}
             onChannelSelect={onSelect}
           />
         )}
@@ -346,7 +453,9 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
             isLoading={isLoading}
             searchQuery={searchQuery}
             searchResults={searchResults}
+            messageResults={messageResults}
             onJoinChannel={handleJoinConversation}
+            onMessageSelect={handleMessageSelect}
             error={joinError}
           />
         </Paper>

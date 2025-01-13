@@ -178,7 +178,7 @@ export const Message: React.FC<MessageProps> = ({
     width: '60%',
     borderRadius: 1,
     padding: 2,
-    color: '#ffffff',
+    color: theme.palette.secondary.contrastText,
     wordWrap: 'break-word',
     whiteSpace: 'pre-wrap',
     overflowWrap: 'break-word',
@@ -267,7 +267,7 @@ export const Message: React.FC<MessageProps> = ({
                 <Typography 
                     variant="body1"
                     sx={{
-                    color: 'rgba(255, 255, 255, 1)',
+                    color: theme.palette.text.primary,
                     fontSize: '1.2rem'
                     }}
                 >{message.content}</Typography>

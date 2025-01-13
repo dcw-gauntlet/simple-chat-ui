@@ -116,7 +116,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       direction="column"
       sx={{
         width: '100%',
-        height: '100vh',
+        height: '100%',
         position: 'relative',
       }}
     >
