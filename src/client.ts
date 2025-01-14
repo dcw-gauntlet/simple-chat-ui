@@ -9,10 +9,12 @@ import {
   UserResponse,
   UserStatusResponse,
   SearchResponse,
-  BaseResponse
+  BaseResponse,
+  FileDescription,
 } from './types';
 
-const API_URL = 'http://venus:8080';
+// Use the environment variable instead
+const API_URL = import.meta.env.VITE_API_URL;
 
 // ----- Server response types -----
 
@@ -133,6 +135,17 @@ interface SearchRequest {
   userId: string;
 }
 
+
+interface AssociatedFilesResponse extends BaseResponse {
+  files: FileDescription[];
+}
+
+// Add new interface for RAG search
+interface RagSearchResponse extends BaseResponse {
+  result: string;
+}
+
+const SUPPORTED_RAG_TYPES = ['.pdf', '.txt', '.md'];
 
 export class ApiClient {
   private baseUrl: string;
@@ -443,16 +456,38 @@ export class ApiClient {
     }
   }
 
-  async uploadFile(file: File): Promise<FileUploadResponse> {
+  async uploadFile(file: File, channelId: string): Promise<FileUploadResponse> {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('associated_channel', channelId);
 
-      return this.request<FileUploadResponse>('/upload_file', {
+      const response = await this.request<FileUploadResponse>('/upload_file', {
         method: 'POST',
         body: formData,
-        // Don't set Content-Type header - browser will set it with boundary
       });
+
+      // If upload was successful and file type is supported, trigger RAG ingestion
+      if (response.ok && response.file_id) {
+        const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+        if (SUPPORTED_RAG_TYPES.includes(fileExtension)) {
+          try {
+            await this.request<BaseResponse>('/rag_ingest', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                file_id: response.file_id,
+                channel_id: channelId
+              })
+            });
+          } catch (error) {
+            console.error('RAG ingestion failed:', error);
+            // Don't throw here - we still want to return the successful upload
+          }
+        }
+      }
+
+      return response;
     } catch (error) {
       console.error('Upload file error:', error);
       return {
@@ -493,6 +528,43 @@ export class ApiClient {
         ok: false,
         message: 'Failed to search messages',
         results: []
+      };
+    }
+  }
+
+  async getAssociatedFiles(channelId: string): Promise<AssociatedFilesResponse> {
+    try {
+      return this.request<AssociatedFilesResponse>('/associated_files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel_id: channelId })
+      });
+    } catch (error) {
+      console.error('Get associated files error:', error);
+      return {
+        ok: false,
+        message: 'Failed to fetch associated files',
+        files: []
+      };
+    }
+  }
+
+  async ragSearch(query: string, channelId: string): Promise<RagSearchResponse> {
+    try {
+      return this.request<RagSearchResponse>('/rag_search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query,
+          channel_id: channelId
+        })
+      });
+    } catch (error) {
+      console.error('RAG search error:', error);
+      return {
+        ok: false,
+        message: 'Failed to perform RAG search',
+        result: '',
       };
     }
   }

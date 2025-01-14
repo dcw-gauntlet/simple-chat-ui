@@ -6,13 +6,11 @@ import { User, Channel, Message, ChannelType, SearchResultData } from './types';
 import { ConversationPanel } from './components/ConversationPanel/ConversationPanel';
 import { ChatPanel } from './components/ChatPanel/ChatPanel';
 import { UserPresence } from './UserPresence';
-import { Box, useTheme, useMediaQuery, IconButton, Button, TextField, Typography } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import { Box, IconButton, } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { theme } from './theme';
-import SearchIcon from '@mui/icons-material/Search';
-import { SearchResult } from './components/Search/SearchResult';
-import { Grid2, Stack } from '@mui/material';
+import { Stack } from '@mui/material';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 interface LoggedInProps {
   user: User;
@@ -340,7 +338,9 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
   const displayChannels: Channel[] = getDisplayChannels();
   
   return (
-    <Stack
+    <Router>
+      <Routes>
+        <Route path="/" element={<Stack
       direction="column"
       spacing={0}
       sx={{
@@ -426,7 +426,10 @@ const LoggedIn: React.FC<LoggedInProps> = ({ user, onLogout }) => {
             )}
           </Box>
         </Stack>
-    </Stack>
+    </Stack>} />
+      </Routes>
+    </Router>
+    
   );
 };
 

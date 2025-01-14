@@ -5,7 +5,7 @@ import { ApiClient } from './../../client';
 import { Stack, TextField, Button, Box, Typography } from '@mui/material';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { styled } from '@mui/material/styles';
-import Icon from '@mui/icons-material/icon';
+import { ChatTitle } from './ChatTitle';
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -112,14 +112,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   
 
   return (
-    <Stack
-      direction="column"
+    <>
+      <Stack
+        direction="column"
       sx={{
         width: '100%',
         height: '100%',
         position: 'relative',
       }}
     >
+      <ChatTitle channel={channel} client={client} />
       <Box
         sx={{
           flexGrow: 1,
@@ -189,10 +191,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 if (event.target.files && event.target.files.length > 0) {
                   const file = event.target.files[0];
                   try {
-                    const response = await client.uploadFile(file);
+                    const response = await client.uploadFile(file, channel.id);
                     if (response.ok) {
                       // Send message with file attachment
-                      await sendMessage(client, channel.id, userId, message, response.file_id, file.name, file.type);
+                      sendMessage(client, channel.id, userId, message, response.file_id, file.name, file.type);
                       setMessage('');
                     }
                   } catch (error) {
@@ -218,5 +220,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         </Stack>
       </Box>
     </Stack>
+    </>
   );
 };

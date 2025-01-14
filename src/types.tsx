@@ -46,3 +46,10 @@ export type Message = {
     sender: User;
 }
 
+export type FileDescription = {
+  file_id: string;
+  filename: string;
+  content_type: string;
+  upload_timestamp: string;
+  uploader_id: string;
+}

@@ -104,3 +104,11 @@ export interface SearchResultData {
 export interface SearchResponse extends BaseResponse {
   results: SearchResultData[];
 }
+
+export interface FileDescription {
+  id: string;
+  filename: string;
+  content_type: string;
+  upload_timestamp: string;
+  uploader_id: string;
+}
