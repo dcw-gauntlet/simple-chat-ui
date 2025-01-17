@@ -142,7 +142,7 @@ interface AssociatedFilesResponse extends BaseResponse {
 
 // Add new interface for RAG search
 interface RagSearchResponse extends BaseResponse {
-  result: string;
+  result: string | null;  // Make result nullable since server can return null on error
 }
 
 const SUPPORTED_RAG_TYPES = ['.pdf', '.txt', '.md'];
@@ -549,14 +549,14 @@ export class ApiClient {
     }
   }
 
-  async ragSearch(query: string, channelId: string): Promise<RagSearchResponse> {
+  async ragSearch(query: string, channelId?: string): Promise<RagSearchResponse> {
     try {
       return this.request<RagSearchResponse>('/rag_search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query,
-          channel_id: channelId
+          channel_id: channelId  // Make channel_id optional to match server
         })
       });
     } catch (error) {
@@ -564,7 +564,7 @@ export class ApiClient {
       return {
         ok: false,
         message: 'Failed to perform RAG search',
-        result: '',
+        result: null
       };
     }
   }

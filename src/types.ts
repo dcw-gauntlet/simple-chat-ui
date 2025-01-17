@@ -109,6 +109,6 @@ export interface FileDescription {
   id: string;
   filename: string;
   content_type: string;
-  upload_timestamp: string;
+  created_at: string;
   uploader_id: string;
 }

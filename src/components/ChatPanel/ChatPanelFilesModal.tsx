@@ -52,7 +52,7 @@ const FileDisplay = ({ file, client }: { file: FileDescription, client: ApiClien
             </ListItemIcon>
             <ListItemText 
                 primary={file.filename}
-                secondary={`Uploaded ${new Date(file.upload_timestamp).toLocaleDateString()}`}
+                secondary={`Uploaded ${new Date(file.created_at).toLocaleDateString()}`}
             />
         </ListItem>
     );
@@ -130,7 +130,21 @@ export const ChatPanelFilesModal = ({
             <DialogContent>
                 {isUploading && <LinearProgress sx={{ mb: 2 }} />}
                 
-                <List>
+                <List sx={{ 
+                    maxHeight: '400px', 
+                    overflow: 'auto',
+                    // Add a subtle fade effect to indicate scrollable content
+                    '&::-webkit-scrollbar': {
+                        width: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        background: '#f1f1f1',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        background: '#888',
+                        borderRadius: '4px',
+                    },
+                }}>
                     {files.map((file, index) => (
                         <FileDisplay 
                             key={file.id || `file-${index}`} 

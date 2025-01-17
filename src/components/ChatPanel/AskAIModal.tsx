@@ -49,11 +49,14 @@ export const AskAiModal = ({ client, channel, onClose }: { client: ApiClient, ch
         setIsSearching(true);
         try {
             const response = await client.ragSearch(query, channel.id);
-            if (response.ok) {
+            if (response.ok && response.result) {
                 setResult(response.result);
+            } else {
+                setResult("No relevant information found to answer your question.");
             }
         } catch (error) {
             console.error('RAG search failed:', error);
+            setResult("Sorry, an error occurred while searching.");
         } finally {
             setIsSearching(false);
         }

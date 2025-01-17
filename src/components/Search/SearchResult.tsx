@@ -1,6 +1,6 @@
 import React from 'react';
 import { Stack, Typography, Paper, Box } from '@mui/material';
-import { SearchResultData, Channel, Message } from '../../types';
+import { SearchResultData, Message } from '../../types';
 
 interface SearchResultProps {
   result: SearchResultData;
